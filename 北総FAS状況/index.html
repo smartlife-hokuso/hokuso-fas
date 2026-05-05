@@ -514,8 +514,10 @@ function onTotalsLoaded(data) {
         var rhtml = '<div style="min-width:120px;">' + left + '</div>';
         if (right) rhtml += '<div style="min-width:120px;">' + right + '</div>';
         document.getElementById("rankList").innerHTML = rhtml;
-        document.getElementById("assetRanking").style.display = "flex";
+    } else {
+        document.getElementById("rankList").innerHTML = '<div style="font-size:11px; color:#8a90a8; line-height:1.6; padding:6px 2px;">今月の実績入力をお待ちください</div>';
     }
+    document.getElementById("assetRanking").style.display = "flex";
 }
 
 // ページ読み込み時に集計を取得
