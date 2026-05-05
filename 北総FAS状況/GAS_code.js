@@ -432,6 +432,42 @@ function archiveAndResetMonth() {
   };
 }
 
+// アーカイブシートから当月項目を現シートに復元する（リセットの取り消し用）
+// ★GASエディタから手動実行する。下の archiveName を復元元のシート名に書き換えてから実行
+function restoreFromArchive() {
+  var archiveName = "2026年4月"; // ★復元元のアーカイブシート名
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var src = ss.getSheetByName(archiveName);
+  var dst = ss.getSheetByName(SHEET_NAME);
+  if (!src) return { status: "error", message: archiveName + " シートが見つかりません" };
+  if (!dst) return { status: "error", message: SHEET_NAME + " シートが見つかりません" };
+
+  var monthlyMap = {};
+  for (var i = 0; i < MONTHLY_RESET_ITEMS.length; i++) monthlyMap[MONTHLY_RESET_ITEMS[i]] = true;
+
+  var lastCol = Math.min(src.getLastColumn(), dst.getLastColumn());
+  var width = lastCol - 3;
+  if (width <= 0) return { status: "error", message: "プランナー列がありません" };
+
+  var srcItems = src.getRange(1, 3, src.getLastRow(), 1).getValues();
+  var restoredItems = 0;
+  for (var r = 3; r < srcItems.length; r++) {
+    var item = srcItems[r][0] ? srcItems[r][0].toString().trim() : "";
+    if (!item || !monthlyMap[item]) continue;
+    var values = src.getRange(r + 1, 4, 1, width).getValues();
+    dst.getRange(r + 1, 4, 1, width).setValues(values);
+    restoredItems++;
+  }
+
+  dst.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日") + "（" + archiveName + "から当月項目を復元）");
+
+  return {
+    status: "ok",
+    restored: restoredItems,
+    message: archiveName + " から " + restoredItems + " 項目を復元しました"
+  };
+}
+
 function writeLog(ss, name, values, updatedKeys, oldValues) {
   var logSheet = ss.getSheetByName("変更ログ");
   if (!logSheet) {
