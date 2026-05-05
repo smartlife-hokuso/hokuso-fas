@@ -7,6 +7,33 @@ var PLAN_FOLDER_NAME = "FAS計画生産シート";
 var PLAN_SHEET_NAME = "計画シート管理";
 var PLAN_DELETE_LOG = "計画シート削除ログ";
 
+// apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（23名、石井（俊）は除外）
+var APO_TO_FAS_NAME = {
+  "並木": "並木 孝博",
+  "中渡瀬": "中渡瀬 理恵",
+  "佐藤（凌）": "佐藤 凌太",
+  "外山": "外山 由佳",
+  "奥": "奥 崇晃",
+  "守田": "守田 ゆき",
+  "岡山": "岡山 純一",
+  "後藤": "後藤 航太",
+  "植野": "植野 友介",
+  "武田": "武田 翔人",
+  "渋谷": "渋谷 航大",
+  "渡会": "渡会 佳祐",
+  "田中（乃）": "田中 乃凪",
+  "田中（大）": "田中 大也",
+  "石井（真）": "石井 真弓",
+  "福田": "福田 花梨",
+  "鈴木": "鈴木 啓人",
+  "須田": "須田 歩",
+  "飯田（敬）": "飯田 敬介",
+  "飯田（未）": "飯田 未来",
+  "高橋": "高橋 昌則",
+  "髙木": "髙木 柚伽",
+  "齋藤": "齋藤 和樹"
+};
+
 // 月初リセット対象（当月項目）。ここに無い項目（FAS/WIN/イベント/人材獲得）は累計として継続
 var MONTHLY_RESET_ITEMS = [
   // アセット実現（当月）13項目
@@ -33,6 +60,10 @@ function doGet(e) {
     json = JSON.stringify(planList(e.parameter.name || ""));
   } else if (action === "plan_delete") {
     json = JSON.stringify(planDelete(e.parameter.name || "", e.parameter.fileId || ""));
+  } else if (action === "conflicts") {
+    json = JSON.stringify(getConflicts());
+  } else if (action === "apo_status") {
+    json = JSON.stringify(getApoStatus());
   } else {
     json = JSON.stringify(readData(e));
   }
@@ -47,6 +78,10 @@ function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   if (data.action === "plan_upload") {
     var result = planUpload(data.name, data.title, data.filename, data.contentType, data.data);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  }
+  if (data.action === "sync_apo") {
+    var result = syncFromApo(data);
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   }
   var result = saveDataDirect(data.name, data.values);
@@ -552,6 +587,171 @@ function recomputeMonthFromLogs(monthPrefixParam) {
   };
 }
 
+// apo.ozzio.info からの月次データを受け取って FAS スプレッドシートに反映
+// payload: { action:"sync_apo", month:"2026/05", data:[{apo_name, values:{...}}, ...], syncDate:"..." }
+// values: アポイントコール数 / アポイントラウンド数 / アポイント（確定）軒数 / アポイント（確定）人数
+function syncFromApo(payload) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  if (!ws) return { status: "error", message: SHEET_NAME + " シートが見つかりません" };
+
+  var data = payload.data || [];
+  if (!data.length) return { status: "error", message: "データが空です" };
+
+  // 名前→列マップ
+  var names = ws.getRange(3, 1, 1, ws.getLastColumn()).getValues()[0];
+  var nameToCol = {};
+  for (var i = 0; i < names.length; i++) {
+    if (names[i]) nameToCol[names[i].toString().replace(/\s/g, "")] = i + 1;
+  }
+  // 項目→行マップ
+  var items = ws.getRange(1, 3, ws.getLastRow(), 1).getValues();
+  var itemToRow = {};
+  for (var r = 0; r < items.length; r++) {
+    if (items[r][0]) itemToRow[items[r][0].toString().trim()] = r + 1;
+  }
+
+  var processed = 0, skipped = 0, conflictsDetected = 0;
+  var skippedNames = [];
+
+  for (var d = 0; d < data.length; d++) {
+    var entry = data[d];
+    var apoName = entry.apo_name || "";
+    var fasName = APO_TO_FAS_NAME[apoName];
+    if (!fasName) {
+      skipped++;
+      skippedNames.push(apoName + "（マッピングなし）");
+      continue;
+    }
+    var nameKey = fasName.replace(/\s/g, "");
+    var col = nameToCol[nameKey];
+    if (!col) {
+      skipped++;
+      skippedNames.push(apoName + "→" + fasName + "（FAS列なし）");
+      continue;
+    }
+
+    // 各項目の更新前値を取得
+    var values = entry.values || {};
+    var updatedKeys = [];
+    var oldValues = {};
+    var keys = Object.keys(values);
+    for (var k = 0; k < keys.length; k++) {
+      var item = keys[k];
+      var row = itemToRow[item];
+      if (!row) continue;
+      var oldVal = ws.getRange(row, col).getValue();
+      var oldNum = (oldVal !== null && oldVal !== "") ? (Number(oldVal) || 0) : 0;
+      var newNum = Number(values[item]) || 0;
+      if (oldNum !== newNum) {
+        oldValues[item] = oldNum;
+        ws.getRange(row, col).setValue(newNum);
+        updatedKeys.push(item);
+
+        // 競合検知: 直近24時間以内の手動入力が同じ項目にあれば記録
+        if (detectConflict(ss, fasName, item, "apo")) conflictsDetected++;
+      }
+    }
+    if (updatedKeys.length > 0) {
+      writeLog(ss, fasName, values, updatedKeys, oldValues, "apo");
+      processed++;
+    }
+  }
+
+  ws.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日 HH:mm") + "（apo自動同期）");
+
+  return {
+    status: "ok",
+    processed: processed,
+    skipped: skipped,
+    skippedNames: skippedNames,
+    conflicts: conflictsDetected,
+    syncDate: payload.syncDate || ""
+  };
+}
+
+// 競合検知: 同じ項目が今日「manual と apo」両方で更新されたか確認、あれば「競合ログ」シートに記録
+// 戻り値: 競合を検出して記録したら true
+function detectConflict(ss, name, item, currentSource) {
+  var logSheet = ss.getSheetByName("変更ログ");
+  if (!logSheet) return false;
+  var data = logSheet.getDataRange().getValues();
+  var disp = logSheet.getDataRange().getDisplayValues();
+  var todayStr = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd");
+  var oppositeSource = (currentSource === "apo") ? "manual" : "apo";
+  var nameKey = name.replace(/\s/g, "");
+
+  for (var r = data.length - 1; r >= 1; r--) {
+    var dateStr = disp[r][0] || "";
+    if (dateStr.indexOf(todayStr) !== 0) continue; // 今日のログのみ対象
+    var logName = data[r][1] ? data[r][1].toString().replace(/\s/g, "") : "";
+    if (logName !== nameKey) continue;
+    var logItem = data[r][2] ? data[r][2].toString() : "";
+    if (logItem !== item) continue;
+    var logSource = data[r][5] ? data[r][5].toString() : "manual";
+    if (logSource === oppositeSource) {
+      // 競合発生 → 競合ログに記録
+      recordConflict(ss, todayStr, name, item, currentSource, oppositeSource);
+      return true;
+    }
+  }
+  return false;
+}
+
+function recordConflict(ss, dateStr, name, item, sourceA, sourceB) {
+  var sh = ss.getSheetByName("競合ログ");
+  if (!sh) {
+    sh = ss.insertSheet("競合ログ");
+    sh.appendRow(["検出日時", "対象日", "プランナー", "項目", "ソース1", "ソース2", "状態"]);
+    sh.getRange(1, 1, 1, 7).setFontWeight("bold");
+  }
+  // 既に同じ (対象日, プランナー, 項目) で active な競合があればスキップ
+  var data = sh.getDataRange().getValues();
+  for (var r = 1; r < data.length; r++) {
+    if (data[r][1] === dateStr && data[r][2] === name && data[r][3] === item && (data[r][6] || "active") === "active") {
+      return;
+    }
+  }
+  var now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  sh.appendRow([now, dateStr, name, item, sourceA, sourceB, "active"]);
+}
+
+// 競合一覧取得（active のみ）
+function getConflicts() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName("競合ログ");
+  if (!sh) return { status: "ok", conflicts: [] };
+  var data = sh.getDataRange().getValues();
+  var conflicts = [];
+  for (var r = 1; r < data.length; r++) {
+    var status = data[r][6] || "active";
+    if (status !== "active") continue;
+    conflicts.push({
+      detectedAt: data[r][0] ? data[r][0].toString() : "",
+      date: data[r][1] ? data[r][1].toString() : "",
+      name: data[r][2] ? data[r][2].toString() : "",
+      item: data[r][3] ? data[r][3].toString() : "",
+      sources: [(data[r][4] || "").toString(), (data[r][5] || "").toString()]
+    });
+  }
+  return { status: "ok", conflicts: conflicts };
+}
+
+// apo同期ステータス取得（最終同期時刻、登録ユーザー数等）
+function getApoStatus() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  var statusCell = ws ? ws.getRange(2, 2).getValue() : "";
+  var apoUsers = [];
+  for (var apoName in APO_TO_FAS_NAME) apoUsers.push(APO_TO_FAS_NAME[apoName]);
+  return {
+    status: "ok",
+    apoUserCount: apoUsers.length,
+    apoUsers: apoUsers,
+    lastUpdate: statusCell ? statusCell.toString() : ""
+  };
+}
+
 // 自動月次リセット: 毎月1日 03:00 JST に時間トリガーから呼ばれる
 // 前月分を再計算→アーカイブ→現シートを0リセット の順で実行
 function monthlyResetTrigger() {
@@ -628,24 +828,29 @@ function removeAutoMonthlyReset() {
   return { status: "ok", removed: removed, message: removed + " 個のトリガーを削除しました" };
 }
 
-function writeLog(ss, name, values, updatedKeys, oldValues) {
+function writeLog(ss, name, values, updatedKeys, oldValues, source) {
   var logSheet = ss.getSheetByName("変更ログ");
   if (!logSheet) {
     logSheet = ss.insertSheet("変更ログ");
-    logSheet.appendRow(["日時", "名前", "変更項目", "変更前", "変更後"]);
-    logSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
+    logSheet.appendRow(["日時", "名前", "変更項目", "変更前", "変更後", "ソース"]);
+    logSheet.getRange(1, 1, 1, 6).setFontWeight("bold");
   }
-  // ヘッダーが4列の場合は5列に更新
-  var header = logSheet.getRange(1, 1, 1, 5).getValues()[0];
-  if (!header[3] || header[3] === "変更後の値") {
+  // ヘッダー整備（4列→5列→6列の段階アップグレード）
+  var headerVals = logSheet.getRange(1, 1, 1, 6).getValues()[0];
+  if (!headerVals[3] || headerVals[3] === "変更後の値") {
     logSheet.getRange(1, 4).setValue("変更前");
     logSheet.getRange(1, 5).setValue("変更後");
-    logSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
   }
+  if (!headerVals[5]) {
+    logSheet.getRange(1, 6).setValue("ソース");
+  }
+  logSheet.getRange(1, 1, 1, 6).setFontWeight("bold");
+
+  var src = source || "manual";
   var now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
   for (var i = 0; i < updatedKeys.length; i++) {
     var key = updatedKeys[i];
     var oldVal = oldValues && oldValues[key] !== undefined ? oldValues[key] : "";
-    logSheet.appendRow([now, name, key, oldVal, values[key]]);
+    logSheet.appendRow([now, name, key, oldVal, values[key], src]);
   }
 }

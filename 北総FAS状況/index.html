@@ -267,6 +267,15 @@ body {
         </div>
     </div>
 
+    <div id="conflictBanner" style="display:none; background:linear-gradient(135deg, #fff5e6, #fff0d6); border:1px solid #f5c89c; border-radius:14px; padding:14px 18px; margin-bottom:14px; cursor:pointer;" onclick="toggleConflictDetails()">
+        <div style="display:flex; align-items:center; gap:10px; color:#a0691f; font-weight:600;">
+            <span style="font-size:20px;">⚠️</span>
+            <span id="conflictHeader">入力競合あり</span>
+            <span style="margin-left:auto; font-size:12px;" id="conflictToggleArrow">▶ 詳細</span>
+        </div>
+        <div id="conflictDetails" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #e0b888; font-size:13px; color:#7a4f15;"></div>
+    </div>
+
     <div class="search-area">
         <input type="text" id="q" placeholder="プランナー名で検索..." oninput="filter()">
         <div style="margin-top: 10px;">
@@ -520,8 +529,61 @@ function onTotalsLoaded(data) {
     document.getElementById("assetRanking").style.display = "flex";
 }
 
+// 競合一覧を取得して警告バナーに表示
+function loadConflicts() {
+    var script = document.createElement("script");
+    script.src = GAS_URL + "?action=conflicts&callback=onConflictsLoaded&_=" + Date.now();
+    document.body.appendChild(script);
+}
+
+function onConflictsLoaded(data) {
+    if (!data || data.status !== "ok" || !data.conflicts || data.conflicts.length === 0) return;
+    var banner = document.getElementById("conflictBanner");
+    var header = document.getElementById("conflictHeader");
+    var details = document.getElementById("conflictDetails");
+    if (!banner || !header || !details) return;
+
+    // 同じ日付ごとにグループ化
+    var byDate = {};
+    for (var i = 0; i < data.conflicts.length; i++) {
+        var c = data.conflicts[i];
+        if (!byDate[c.date]) byDate[c.date] = [];
+        byDate[c.date].push(c);
+    }
+    var dateList = Object.keys(byDate).sort().reverse();
+    header.textContent = "⚠️ apoと手入力の両方に入力された日があります（" + dateList.length + "日 / " + data.conflicts.length + "件）";
+
+    var html = "";
+    for (var d = 0; d < dateList.length; d++) {
+        var dt = dateList[d];
+        html += '<div style="margin-bottom:8px;"><strong>' + dt + '</strong></div>';
+        var items = byDate[dt];
+        for (var j = 0; j < items.length; j++) {
+            var it = items[j];
+            html += '<div style="padding:4px 12px; font-size:12px;">　・' + it.name + 'さん 「' + it.item + '」 — ' + it.sources.join(' と ') + ' の両方</div>';
+        }
+    }
+    html += '<div style="margin-top:10px; font-size:11px; color:#a07730;">※ apo側の値で上書きされています。問題ある場合は手動で修正してください。</div>';
+    details.innerHTML = html;
+    banner.style.display = "block";
+}
+
+function toggleConflictDetails() {
+    var d = document.getElementById("conflictDetails");
+    var a = document.getElementById("conflictToggleArrow");
+    if (!d || !a) return;
+    if (d.style.display === "none") {
+        d.style.display = "block";
+        a.textContent = "▼ 閉じる";
+    } else {
+        d.style.display = "none";
+        a.textContent = "▶ 詳細";
+    }
+}
+
 // ページ読み込み時に集計を取得
 loadTotals();
+loadConflicts();
 </script>
 </body>
 </html>

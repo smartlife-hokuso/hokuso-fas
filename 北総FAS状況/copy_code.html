@@ -10,55 +10,90 @@ pre { background: #1e1e1e; color: #d4d4d4; padding: 20px; border-radius: 8px; fo
 <h1>GASコード（最新版）</h1>
 <button onclick="copyCode()">コードをコピー</button>
 <div id="msg"></div>
-<pre id="code">var SHEET_ID = "1wjKFnzeKQe6StoIHXcE08qC2bZgzgJWfywHk32o0BSw";
-var SHEET_NAME = "SL富里のコピー";
+<pre id="code">var SHEET_ID = &quot;1wjKFnzeKQe6StoIHXcE08qC2bZgzgJWfywHk32o0BSw&quot;;
+var SHEET_NAME = &quot;SL富里のコピー&quot;;
 
-var LOG_PASSWORD = "hokuso2026";
+var LOG_PASSWORD = &quot;hokuso2026&quot;;
 
-var PLAN_FOLDER_NAME = "FAS計画生産シート";
-var PLAN_SHEET_NAME = "計画シート管理";
-var PLAN_DELETE_LOG = "計画シート削除ログ";
+var PLAN_FOLDER_NAME = &quot;FAS計画生産シート&quot;;
+var PLAN_SHEET_NAME = &quot;計画シート管理&quot;;
+var PLAN_DELETE_LOG = &quot;計画シート削除ログ&quot;;
+
+// apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（23名、石井（俊）は除外）
+var APO_TO_FAS_NAME = {
+  &quot;並木&quot;: &quot;並木 孝博&quot;,
+  &quot;中渡瀬&quot;: &quot;中渡瀬 理恵&quot;,
+  &quot;佐藤（凌）&quot;: &quot;佐藤 凌太&quot;,
+  &quot;外山&quot;: &quot;外山 由佳&quot;,
+  &quot;奥&quot;: &quot;奥 崇晃&quot;,
+  &quot;守田&quot;: &quot;守田 ゆき&quot;,
+  &quot;岡山&quot;: &quot;岡山 純一&quot;,
+  &quot;後藤&quot;: &quot;後藤 航太&quot;,
+  &quot;植野&quot;: &quot;植野 友介&quot;,
+  &quot;武田&quot;: &quot;武田 翔人&quot;,
+  &quot;渋谷&quot;: &quot;渋谷 航大&quot;,
+  &quot;渡会&quot;: &quot;渡会 佳祐&quot;,
+  &quot;田中（乃）&quot;: &quot;田中 乃凪&quot;,
+  &quot;田中（大）&quot;: &quot;田中 大也&quot;,
+  &quot;石井（真）&quot;: &quot;石井 真弓&quot;,
+  &quot;福田&quot;: &quot;福田 花梨&quot;,
+  &quot;鈴木&quot;: &quot;鈴木 啓人&quot;,
+  &quot;須田&quot;: &quot;須田 歩&quot;,
+  &quot;飯田（敬）&quot;: &quot;飯田 敬介&quot;,
+  &quot;飯田（未）&quot;: &quot;飯田 未来&quot;,
+  &quot;高橋&quot;: &quot;高橋 昌則&quot;,
+  &quot;髙木&quot;: &quot;髙木 柚伽&quot;,
+  &quot;齋藤&quot;: &quot;齋藤 和樹&quot;
+};
 
 // 月初リセット対象（当月項目）。ここに無い項目（FAS/WIN/イベント/人材獲得）は累計として継続
 var MONTHLY_RESET_ITEMS = [
   // アセット実現（当月）13項目
-  "VC","内AO生","内専門生","内ビジネス","内DXエントリー","内DXレギュラー",
-  "CEX","従業員オプション","WEB","GoogleWokSpace","GenSpark","光/SIM/モバイルルータ","我が社",
+  &quot;VC&quot;,&quot;内AO生&quot;,&quot;内専門生&quot;,&quot;内ビジネス&quot;,&quot;内DXエントリー&quot;,&quot;内DXレギュラー&quot;,
+  &quot;CEX&quot;,&quot;従業員オプション&quot;,&quot;WEB&quot;,&quot;GoogleWokSpace&quot;,&quot;GenSpark&quot;,&quot;光/SIM/モバイルルータ&quot;,&quot;我が社&quot;,
   // アポイント（当月）4項目
-  "アポイントコール数","アポイントラウンド数","アポイント（確定）軒数","アポイント（確定）人数"
+  &quot;アポイントコール数&quot;,&quot;アポイントラウンド数&quot;,&quot;アポイント（確定）軒数&quot;,&quot;アポイント（確定）人数&quot;
 ];
 
 function doGet(e) {
-  var callback = e.parameter.callback || "";
-  var action = e.parameter.action || "";
-  var json = "";
+  var callback = e.parameter.callback || &quot;&quot;;
+  var action = e.parameter.action || &quot;&quot;;
+  var json = &quot;&quot;;
 
-  if (action === "save") {
+  if (action === &quot;save&quot;) {
     json = JSON.stringify(saveData(e));
-  } else if (action === "totals") {
+  } else if (action === &quot;totals&quot;) {
     json = JSON.stringify(readTotals());
-  } else if (action === "log") {
+  } else if (action === &quot;log&quot;) {
     json = JSON.stringify(readLog(e));
-  } else if (action === "mylog") {
+  } else if (action === &quot;mylog&quot;) {
     json = JSON.stringify(readMyLog(e));
-  } else if (action === "plan_list") {
-    json = JSON.stringify(planList(e.parameter.name || ""));
-  } else if (action === "plan_delete") {
-    json = JSON.stringify(planDelete(e.parameter.name || "", e.parameter.fileId || ""));
+  } else if (action === &quot;plan_list&quot;) {
+    json = JSON.stringify(planList(e.parameter.name || &quot;&quot;));
+  } else if (action === &quot;plan_delete&quot;) {
+    json = JSON.stringify(planDelete(e.parameter.name || &quot;&quot;, e.parameter.fileId || &quot;&quot;));
+  } else if (action === &quot;conflicts&quot;) {
+    json = JSON.stringify(getConflicts());
+  } else if (action === &quot;apo_status&quot;) {
+    json = JSON.stringify(getApoStatus());
   } else {
     json = JSON.stringify(readData(e));
   }
 
   if (callback) {
-    return ContentService.createTextOutput(callback + "(" + json + ")").setMimeType(ContentService.MimeType.JAVASCRIPT);
+    return ContentService.createTextOutput(callback + &quot;(&quot; + json + &quot;)&quot;).setMimeType(ContentService.MimeType.JAVASCRIPT);
   }
   return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);
 }
 
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
-  if (data.action === "plan_upload") {
+  if (data.action === &quot;plan_upload&quot;) {
     var result = planUpload(data.name, data.title, data.filename, data.contentType, data.data);
+    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
+  }
+  if (data.action === &quot;sync_apo&quot;) {
+    var result = syncFromApo(data);
     return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
   }
   var result = saveDataDirect(data.name, data.values);
@@ -69,19 +104,19 @@ function readData(e) {
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var ws = ss.getSheetByName(SHEET_NAME);
   var allData = ws.getDataRange().getValues();
-  var targetName = e.parameter.name || "";
+  var targetName = e.parameter.name || &quot;&quot;;
   var nameRow = allData[2];
   var itemCol = 2;
   var result = {};
   for (var c = 3; c &lt; nameRow.length; c++) {
-    var name = nameRow[c] ? nameRow[c].toString().trim() : "";
+    var name = nameRow[c] ? nameRow[c].toString().trim() : &quot;&quot;;
     if (!name) continue;
-    if (targetName &amp;&amp; name.replace(/\s/g, "") !== targetName.replace(/\s/g, "")) continue;
+    if (targetName &amp;&amp; name.replace(/\s/g, &quot;&quot;) !== targetName.replace(/\s/g, &quot;&quot;)) continue;
     var person = {};
     for (var r = 3; r &lt; allData.length; r++) {
-      var item = allData[r][itemCol] ? allData[r][itemCol].toString().trim() : "";
+      var item = allData[r][itemCol] ? allData[r][itemCol].toString().trim() : &quot;&quot;;
       if (item) {
-        person[item] = allData[r][c] !== null &amp;&amp; allData[r][c] !== "" ? allData[r][c] : 0;
+        person[item] = allData[r][c] !== null &amp;&amp; allData[r][c] !== &quot;&quot; ? allData[r][c] : 0;
       }
     }
     result[name] = person;
@@ -99,7 +134,7 @@ function readTotals() {
   // 項目名→行番号のマッピング
   var itemRows = {};
   for (var r = 3; r &lt; allData.length; r++) {
-    var item = allData[r][itemCol] ? allData[r][itemCol].toString().trim() : "";
+    var item = allData[r][itemCol] ? allData[r][itemCol].toString().trim() : &quot;&quot;;
     if (item) itemRows[item] = r;
   }
 
@@ -107,17 +142,17 @@ function readTotals() {
   var planners = {};
 
   for (var c = 3; c &lt; nameRow.length; c++) {
-    var name = nameRow[c] ? nameRow[c].toString().trim() : "";
+    var name = nameRow[c] ? nameRow[c].toString().trim() : &quot;&quot;;
     if (!name) continue;
-    var nameKey = name.replace(/\s/g, "");
-    var cust = Number(allData[itemRows["担当軒数"]] ? allData[itemRows["担当軒数"]][c] : 0) || 0;
-    var people = Number(allData[itemRows["担当人数"]] ? allData[itemRows["担当人数"]][c] : 0) || 0;
-    var ippan = Number(allData[itemRows["内一般聴講生軒数"]] ? allData[itemRows["内一般聴講生軒数"]][c] : 0) || 0;
-    var senmon = Number(allData[itemRows["内専門聴講生軒数"]] ? allData[itemRows["内専門聴講生軒数"]][c] : 0) || 0;
-    var dx = Number(allData[itemRows["内DX会員軒数"]] ? allData[itemRows["内DX会員軒数"]][c] : 0) || 0;
+    var nameKey = name.replace(/\s/g, &quot;&quot;);
+    var cust = Number(allData[itemRows[&quot;担当軒数&quot;]] ? allData[itemRows[&quot;担当軒数&quot;]][c] : 0) || 0;
+    var people = Number(allData[itemRows[&quot;担当人数&quot;]] ? allData[itemRows[&quot;担当人数&quot;]][c] : 0) || 0;
+    var ippan = Number(allData[itemRows[&quot;内一般聴講生軒数&quot;]] ? allData[itemRows[&quot;内一般聴講生軒数&quot;]][c] : 0) || 0;
+    var senmon = Number(allData[itemRows[&quot;内専門聴講生軒数&quot;]] ? allData[itemRows[&quot;内専門聴講生軒数&quot;]][c] : 0) || 0;
+    var dx = Number(allData[itemRows[&quot;内DX会員軒数&quot;]] ? allData[itemRows[&quot;内DX会員軒数&quot;]][c] : 0) || 0;
     var ao = ippan + senmon + dx;
 
-    var assetKeys = ["VC","内AO生","内専門生","内ビジネス","内DXエントリー","内DXレギュラー","CEX","従業員オプション","WEB","GoogleWokSpace","GenSpark","光/SIM/モバイルルータ","我が社"];
+    var assetKeys = [&quot;VC&quot;,&quot;内AO生&quot;,&quot;内専門生&quot;,&quot;内ビジネス&quot;,&quot;内DXエントリー&quot;,&quot;内DXレギュラー&quot;,&quot;CEX&quot;,&quot;従業員オプション&quot;,&quot;WEB&quot;,&quot;GoogleWokSpace&quot;,&quot;GenSpark&quot;,&quot;光/SIM/モバイルルータ&quot;,&quot;我が社&quot;];
     var asset = 0;
     for (var ak = 0; ak &lt; assetKeys.length; ak++) {
       asset += Number(allData[itemRows[assetKeys[ak]]] ? allData[itemRows[assetKeys[ak]]][c] : 0) || 0;
@@ -133,8 +168,8 @@ function readTotals() {
 }
 
 function saveData(e) {
-  var name = e.parameter.name || "";
-  var dataStr = e.parameter.data || "{}";
+  var name = e.parameter.name || &quot;&quot;;
+  var dataStr = e.parameter.data || &quot;{}&quot;;
   var values = JSON.parse(dataStr);
   return saveDataDirect(name, values);
 }
@@ -145,13 +180,13 @@ function saveDataDirect(name, values) {
   var names = ws.getRange(3, 1, 1, ws.getLastColumn()).getValues()[0];
   var col = -1;
   for (var i = 0; i &lt; names.length; i++) {
-    if (names[i] &amp;&amp; names[i].toString().replace(/\s/g, "") === name.replace(/\s/g, "")) {
+    if (names[i] &amp;&amp; names[i].toString().replace(/\s/g, &quot;&quot;) === name.replace(/\s/g, &quot;&quot;)) {
       col = i + 1;
       break;
     }
   }
   if (col === -1) {
-    return {status: "error", message: "name not found: " + name};
+    return {status: &quot;error&quot;, message: &quot;name not found: &quot; + name};
   }
   var items = ws.getRange(1, 3, ws.getLastRow(), 1).getValues();
   var updates = [];
@@ -163,19 +198,19 @@ function saveDataDirect(name, values) {
     for (var r = 0; r &lt; items.length; r++) {
       if (items[r][0] &amp;&amp; items[r][0].toString().trim() === key.trim()) {
         var oldVal = ws.getRange(r + 1, col).getValue();
-        oldValues[key] = oldVal !== null &amp;&amp; oldVal !== "" ? oldVal : 0;
+        oldValues[key] = oldVal !== null &amp;&amp; oldVal !== &quot;&quot; ? oldVal : 0;
         ws.getRange(r + 1, col).setValue(Number(value) || 0);
         updates.push(key);
         break;
       }
     }
   }
-  ws.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日"));
+  ws.getRange(2, 2).setValue(&quot;更新日:&quot; + Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy年M月d日&quot;));
 
   // 変更ログを記録
   writeLog(ss, name, values, updates, oldValues);
 
-  return {status: "ok", updated: updates, name: name};
+  return {status: &quot;ok&quot;, updated: updates, name: name};
 }
 
 // 全拠点のプランナーをスプレッドシートに追加（GASエディタで1回だけ実行）
@@ -187,18 +222,18 @@ function addAllPlanners() {
   // 既存の名前を取得（スペース除去で比較用）
   var existing = {};
   for (var i = 0; i &lt; nameRow.length; i++) {
-    if (nameRow[i]) existing[nameRow[i].toString().replace(/\s/g, "")] = true;
+    if (nameRow[i]) existing[nameRow[i].toString().replace(/\s/g, &quot;&quot;)] = true;
   }
 
   // 拠点ごとのプランナー一覧
   var regions = [
-    { name: "SL鎌ケ谷", members: ["片桐 啓介","入江 渓太","新田 祐二","柴 由香里","玉井 なおこ","関根 瞳","井戸 昭人","金 鍾進","濱田 耕一","工藤 李紀"] },
-    { name: "成田デジタル館", members: ["武田 翔人"] },
-    { name: "DCL千葉NT", members: ["齋藤 えま","森川 直人","小野寺 真唯","秋山 徹平","佐藤 諒","原重 彩花","烏蘭 其其格","髙梨 聖真"] },
-    { name: "DCL旭", members: ["平山 敬人","早川 浩史","小林 敬史","遠藤 晴香","柴 茂雄"] },
-    { name: "DCL四街道", members: ["富井 優太","藤本 圭","星野 凌我","橘木 悠人"] },
-    { name: "DCL白井駅前", members: ["二村 和徳","渡辺 久斗","椎名 淳之"] },
-    { name: "SL成田", members: ["諏訪 開飛","小林 篤司","山野井 尋紀","保屋松 綾太"] }
+    { name: &quot;SL鎌ケ谷&quot;, members: [&quot;片桐 啓介&quot;,&quot;入江 渓太&quot;,&quot;新田 祐二&quot;,&quot;柴 由香里&quot;,&quot;玉井 なおこ&quot;,&quot;関根 瞳&quot;,&quot;井戸 昭人&quot;,&quot;金 鍾進&quot;,&quot;濱田 耕一&quot;,&quot;工藤 李紀&quot;] },
+    { name: &quot;成田デジタル館&quot;, members: [&quot;武田 翔人&quot;] },
+    { name: &quot;DCL千葉NT&quot;, members: [&quot;齋藤 えま&quot;,&quot;森川 直人&quot;,&quot;小野寺 真唯&quot;,&quot;秋山 徹平&quot;,&quot;佐藤 諒&quot;,&quot;原重 彩花&quot;,&quot;烏蘭 其其格&quot;,&quot;髙梨 聖真&quot;] },
+    { name: &quot;DCL旭&quot;, members: [&quot;平山 敬人&quot;,&quot;早川 浩史&quot;,&quot;小林 敬史&quot;,&quot;遠藤 晴香&quot;,&quot;柴 茂雄&quot;] },
+    { name: &quot;DCL四街道&quot;, members: [&quot;富井 優太&quot;,&quot;藤本 圭&quot;,&quot;星野 凌我&quot;,&quot;橘木 悠人&quot;] },
+    { name: &quot;DCL白井駅前&quot;, members: [&quot;二村 和徳&quot;,&quot;渡辺 久斗&quot;,&quot;椎名 淳之&quot;] },
+    { name: &quot;SL成田&quot;, members: [&quot;諏訪 開飛&quot;,&quot;小林 篤司&quot;,&quot;山野井 尋紀&quot;,&quot;保屋松 綾太&quot;] }
   ];
 
   var nextCol = ws.getLastColumn() + 1;
@@ -208,13 +243,13 @@ function addAllPlanners() {
     var region = regions[r];
     for (var m = 0; m &lt; region.members.length; m++) {
       var member = region.members[m];
-      var key = member.replace(/\s/g, "");
+      var key = member.replace(/\s/g, &quot;&quot;);
       if (existing[key]) continue; // 既存ならスキップ
 
       // 2行目に拠点名、3行目に名前を書き込む
       ws.getRange(2, nextCol).setValue(region.name);
       ws.getRange(3, nextCol).setValue(member);
-      added.push(region.name + ": " + member);
+      added.push(region.name + &quot;: &quot; + member);
       nextCol++;
     }
   }
@@ -224,60 +259,60 @@ function addAllPlanners() {
     var row2 = ws.getRange(2, c).getValue();
     var row3 = ws.getRange(3, c).getValue();
     if (row3 &amp;&amp; !row2) {
-      ws.getRange(2, c).setValue("SL富里インター");
+      ws.getRange(2, c).setValue(&quot;SL富里インター&quot;);
     }
   }
 
-  return "追加完了: " + added.length + "名\n" + added.join("\n");
+  return &quot;追加完了: &quot; + added.length + &quot;名\n&quot; + added.join(&quot;\n&quot;);
 }
 
 function readMyLog(e) {
-  var name = e.parameter.name || "";
-  if (!name) return { status: "error", message: "name required" };
+  var name = e.parameter.name || &quot;&quot;;
+  if (!name) return { status: &quot;error&quot;, message: &quot;name required&quot; };
   var ss = SpreadsheetApp.openById(SHEET_ID);
-  var logSheet = ss.getSheetByName("変更ログ");
-  if (!logSheet) return { status: "ok", logs: [] };
+  var logSheet = ss.getSheetByName(&quot;変更ログ&quot;);
+  if (!logSheet) return { status: &quot;ok&quot;, logs: [] };
   var data = logSheet.getDataRange().getValues();
   var displayData = logSheet.getDataRange().getDisplayValues();
   var logs = [];
   for (var r = 1; r &lt; data.length; r++) {
-    var logName = data[r][1] ? data[r][1].toString().replace(/\s/g, "") : "";
-    if (logName !== name.replace(/\s/g, "")) continue;
-    var dateStr = displayData[r][0] || "";
+    var logName = data[r][1] ? data[r][1].toString().replace(/\s/g, &quot;&quot;) : &quot;&quot;;
+    if (logName !== name.replace(/\s/g, &quot;&quot;)) continue;
+    var dateStr = displayData[r][0] || &quot;&quot;;
     logs.push({
       date: dateStr,
-      item: data[r][2] ? data[r][2].toString() : "",
-      oldVal: data[r][3] !== null &amp;&amp; data[r][3] !== "" ? data[r][3] : 0,
-      newVal: data[r][4] !== null &amp;&amp; data[r][4] !== undefined &amp;&amp; data[r][4] !== "" ? data[r][4] : (data[r][3] !== null &amp;&amp; data[r][3] !== "" ? data[r][3] : 0)
+      item: data[r][2] ? data[r][2].toString() : &quot;&quot;,
+      oldVal: data[r][3] !== null &amp;&amp; data[r][3] !== &quot;&quot; ? data[r][3] : 0,
+      newVal: data[r][4] !== null &amp;&amp; data[r][4] !== undefined &amp;&amp; data[r][4] !== &quot;&quot; ? data[r][4] : (data[r][3] !== null &amp;&amp; data[r][3] !== &quot;&quot; ? data[r][3] : 0)
     });
   }
-  return { status: "ok", logs: logs };
+  return { status: &quot;ok&quot;, logs: logs };
 }
 
 function readLog(e) {
-  var pw = e.parameter.pw || "";
+  var pw = e.parameter.pw || &quot;&quot;;
   if (pw !== LOG_PASSWORD) {
-    return { status: "error", message: "パスワードが違います" };
+    return { status: &quot;error&quot;, message: &quot;パスワードが違います&quot; };
   }
   var ss = SpreadsheetApp.openById(SHEET_ID);
-  var logSheet = ss.getSheetByName("変更ログ");
+  var logSheet = ss.getSheetByName(&quot;変更ログ&quot;);
   if (!logSheet) {
-    return { status: "ok", logs: [] };
+    return { status: &quot;ok&quot;, logs: [] };
   }
   var data = logSheet.getDataRange().getValues();
   var displayData = logSheet.getDataRange().getDisplayValues();
   var logs = [];
   for (var r = 1; r &lt; data.length; r++) {
-    var dateStr = displayData[r][0] || "";
+    var dateStr = displayData[r][0] || &quot;&quot;;
     logs.push({
       date: dateStr,
-      name: data[r][1] ? data[r][1].toString() : "",
-      item: data[r][2] ? data[r][2].toString() : "",
-      oldVal: data[r][3] !== null &amp;&amp; data[r][3] !== "" ? data[r][3] : 0,
-      newVal: data[r][4] !== null &amp;&amp; data[r][4] !== undefined &amp;&amp; data[r][4] !== "" ? data[r][4] : (data[r][3] !== null &amp;&amp; data[r][3] !== "" ? data[r][3] : 0)
+      name: data[r][1] ? data[r][1].toString() : &quot;&quot;,
+      item: data[r][2] ? data[r][2].toString() : &quot;&quot;,
+      oldVal: data[r][3] !== null &amp;&amp; data[r][3] !== &quot;&quot; ? data[r][3] : 0,
+      newVal: data[r][4] !== null &amp;&amp; data[r][4] !== undefined &amp;&amp; data[r][4] !== &quot;&quot; ? data[r][4] : (data[r][3] !== null &amp;&amp; data[r][3] !== &quot;&quot; ? data[r][3] : 0)
     });
   }
-  return { status: "ok", logs: logs };
+  return { status: &quot;ok&quot;, logs: logs };
 }
 
 function getOrCreatePlanFolder() {
@@ -291,34 +326,34 @@ function getOrCreatePlanSheet() {
   var sh = ss.getSheetByName(PLAN_SHEET_NAME);
   if (!sh) {
     sh = ss.insertSheet(PLAN_SHEET_NAME);
-    sh.appendRow(["日時", "プランナー名", "タイトル", "ファイル名", "ファイルID", "MIMEタイプ", "状態"]);
-    sh.getRange(1, 1, 1, 7).setFontWeight("bold");
+    sh.appendRow([&quot;日時&quot;, &quot;プランナー名&quot;, &quot;タイトル&quot;, &quot;ファイル名&quot;, &quot;ファイルID&quot;, &quot;MIMEタイプ&quot;, &quot;状態&quot;]);
+    sh.getRange(1, 1, 1, 7).setFontWeight(&quot;bold&quot;);
   }
   return sh;
 }
 
 function planUpload(name, title, filename, contentType, base64Data) {
   if (!name || !title || !filename || !base64Data) {
-    return { status: "error", message: "必要な項目が不足しています" };
+    return { status: &quot;error&quot;, message: &quot;必要な項目が不足しています&quot; };
   }
   try {
     var folder = getOrCreatePlanFolder();
-    var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType || "application/octet-stream", filename);
+    var blob = Utilities.newBlob(Utilities.base64Decode(base64Data), contentType || &quot;application/octet-stream&quot;, filename);
     var file = folder.createFile(blob);
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
     var sh = getOrCreatePlanSheet();
-    var now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
-    sh.appendRow([now, name, title, filename, file.getId(), contentType || "", "active"]);
+    var now = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd HH:mm:ss&quot;);
+    sh.appendRow([now, name, title, filename, file.getId(), contentType || &quot;&quot;, &quot;active&quot;]);
     return {
-      status: "ok",
+      status: &quot;ok&quot;,
       fileId: file.getId(),
       date: now,
       title: title,
       filename: filename,
-      contentType: contentType || ""
+      contentType: contentType || &quot;&quot;
     };
   } catch (err) {
-    return { status: "error", message: String(err) };
+    return { status: &quot;error&quot;, message: String(err) };
   }
 }
 
@@ -328,57 +363,57 @@ function planList(name) {
     var data = sh.getDataRange().getValues();
     var displayData = sh.getDataRange().getDisplayValues();
     var list = [];
-    var nameKey = (name || "").replace(/\s/g, "");
+    var nameKey = (name || &quot;&quot;).replace(/\s/g, &quot;&quot;);
     for (var r = 1; r &lt; data.length; r++) {
-      var rowName = data[r][1] ? data[r][1].toString().replace(/\s/g, "") : "";
+      var rowName = data[r][1] ? data[r][1].toString().replace(/\s/g, &quot;&quot;) : &quot;&quot;;
       if (nameKey &amp;&amp; rowName !== nameKey) continue;
-      var status = data[r][6] || "active";
-      if (status === "deleted") continue;
+      var status = data[r][6] || &quot;active&quot;;
+      if (status === &quot;deleted&quot;) continue;
       list.push({
-        date: displayData[r][0] || "",
-        name: data[r][1] ? data[r][1].toString() : "",
-        title: data[r][2] ? data[r][2].toString() : "",
-        filename: data[r][3] ? data[r][3].toString() : "",
-        fileId: data[r][4] ? data[r][4].toString() : "",
-        contentType: data[r][5] ? data[r][5].toString() : ""
+        date: displayData[r][0] || &quot;&quot;,
+        name: data[r][1] ? data[r][1].toString() : &quot;&quot;,
+        title: data[r][2] ? data[r][2].toString() : &quot;&quot;,
+        filename: data[r][3] ? data[r][3].toString() : &quot;&quot;,
+        fileId: data[r][4] ? data[r][4].toString() : &quot;&quot;,
+        contentType: data[r][5] ? data[r][5].toString() : &quot;&quot;
       });
     }
     // 新しい順
     list.reverse();
-    return { status: "ok", items: list };
+    return { status: &quot;ok&quot;, items: list };
   } catch (err) {
-    return { status: "error", message: String(err), items: [] };
+    return { status: &quot;error&quot;, message: String(err), items: [] };
   }
 }
 
 function planDelete(name, fileId) {
   if (!name || !fileId) {
-    return { status: "error", message: "name と fileId が必要です" };
+    return { status: &quot;error&quot;, message: &quot;name と fileId が必要です&quot; };
   }
   try {
     var sh = getOrCreatePlanSheet();
     var data = sh.getDataRange().getValues();
-    var nameKey = name.replace(/\s/g, "");
+    var nameKey = name.replace(/\s/g, &quot;&quot;);
     for (var r = 1; r &lt; data.length; r++) {
       if (data[r][4] &amp;&amp; data[r][4].toString() === fileId) {
-        var rowName = data[r][1] ? data[r][1].toString().replace(/\s/g, "") : "";
+        var rowName = data[r][1] ? data[r][1].toString().replace(/\s/g, &quot;&quot;) : &quot;&quot;;
         if (rowName !== nameKey) {
-          return { status: "error", message: "本人のみ削除できます" };
+          return { status: &quot;error&quot;, message: &quot;本人のみ削除できます&quot; };
         }
-        sh.getRange(r + 1, 7).setValue("deleted");
-        var title = data[r][2] ? data[r][2].toString() : "";
-        var filename = data[r][3] ? data[r][3].toString() : "";
+        sh.getRange(r + 1, 7).setValue(&quot;deleted&quot;);
+        var title = data[r][2] ? data[r][2].toString() : &quot;&quot;;
+        var filename = data[r][3] ? data[r][3].toString() : &quot;&quot;;
         try {
           var file = DriveApp.getFileById(fileId);
           file.setTrashed(true);
         } catch (e) {}
         writePlanDeleteLog(name, title, filename, fileId);
-        return { status: "ok" };
+        return { status: &quot;ok&quot; };
       }
     }
-    return { status: "error", message: "該当ファイルが見つかりません" };
+    return { status: &quot;error&quot;, message: &quot;該当ファイルが見つかりません&quot; };
   } catch (err) {
-    return { status: "error", message: String(err) };
+    return { status: &quot;error&quot;, message: String(err) };
   }
 }
 
@@ -387,22 +422,22 @@ function writePlanDeleteLog(name, title, filename, fileId) {
   var sh = ss.getSheetByName(PLAN_DELETE_LOG);
   if (!sh) {
     sh = ss.insertSheet(PLAN_DELETE_LOG);
-    sh.appendRow(["日時", "プランナー名", "タイトル", "ファイル名", "ファイルID"]);
-    sh.getRange(1, 1, 1, 5).setFontWeight("bold");
+    sh.appendRow([&quot;日時&quot;, &quot;プランナー名&quot;, &quot;タイトル&quot;, &quot;ファイル名&quot;, &quot;ファイルID&quot;]);
+    sh.getRange(1, 1, 1, 5).setFontWeight(&quot;bold&quot;);
   }
-  var now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  var now = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd HH:mm:ss&quot;);
   sh.appendRow([now, name, title, filename, fileId]);
 }
 
 // 月初リセット: 現シートを指定名にコピー保存し、当月項目を0にリセット
 // 引数 archiveNameParam: 指定すればそれを使う。省略時はデフォルト名を使用（手動実行用）
 function archiveAndResetMonth(archiveNameParam) {
-  var archiveName = archiveNameParam || "2026年4月"; // ★手動実行時のデフォルト
+  var archiveName = archiveNameParam || &quot;2026年4月&quot;; // ★手動実行時のデフォルト
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var src = ss.getSheetByName(SHEET_NAME);
-  if (!src) return { status: "error", message: "現シートが見つかりません: " + SHEET_NAME };
+  if (!src) return { status: &quot;error&quot;, message: &quot;現シートが見つかりません: &quot; + SHEET_NAME };
   if (ss.getSheetByName(archiveName)) {
-    return { status: "error", message: archiveName + " は既に存在します。アーカイブ名を変えるか既存を削除してください" };
+    return { status: &quot;error&quot;, message: archiveName + &quot; は既に存在します。アーカイブ名を変えるか既存を削除してください&quot; };
   }
 
   // 1) アーカイブ作成（現シートを丸ごとコピー）
@@ -420,7 +455,7 @@ function archiveAndResetMonth(archiveNameParam) {
 
   var resetRows = [];
   for (var r = 3; r &lt; allData.length; r++) {
-    var item = allData[r][2] ? allData[r][2].toString().trim() : "";
+    var item = allData[r][2] ? allData[r][2].toString().trim() : &quot;&quot;;
     if (item &amp;&amp; monthlyMap[item]) resetRows.push(r);
   }
 
@@ -434,68 +469,68 @@ function archiveAndResetMonth(archiveNameParam) {
     }
   }
 
-  src.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日") + "（" + archiveName + "アーカイブ後リセット済）");
+  src.getRange(2, 2).setValue(&quot;更新日:&quot; + Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy年M月d日&quot;) + &quot;（&quot; + archiveName + &quot;アーカイブ後リセット済）&quot;);
 
   return {
-    status: "ok",
+    status: &quot;ok&quot;,
     archived: archiveName,
     resetItemCount: resetRows.length,
-    message: archiveName + " にアーカイブし、" + resetRows.length + "項目を0リセットしました"
+    message: archiveName + &quot; にアーカイブし、&quot; + resetRows.length + &quot;項目を0リセットしました&quot;
   };
 }
 
 // アーカイブシートから当月項目を現シートに復元する（リセットの取り消し用）
 // ★GASエディタから手動実行する。下の archiveName を復元元のシート名に書き換えてから実行
 function restoreFromArchive() {
-  var archiveName = "2026年4月"; // ★復元元のアーカイブシート名
+  var archiveName = &quot;2026年4月&quot;; // ★復元元のアーカイブシート名
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var src = ss.getSheetByName(archiveName);
   var dst = ss.getSheetByName(SHEET_NAME);
-  if (!src) return { status: "error", message: archiveName + " シートが見つかりません" };
-  if (!dst) return { status: "error", message: SHEET_NAME + " シートが見つかりません" };
+  if (!src) return { status: &quot;error&quot;, message: archiveName + &quot; シートが見つかりません&quot; };
+  if (!dst) return { status: &quot;error&quot;, message: SHEET_NAME + &quot; シートが見つかりません&quot; };
 
   var monthlyMap = {};
   for (var i = 0; i &lt; MONTHLY_RESET_ITEMS.length; i++) monthlyMap[MONTHLY_RESET_ITEMS[i]] = true;
 
   var lastCol = Math.min(src.getLastColumn(), dst.getLastColumn());
   var width = lastCol - 3;
-  if (width &lt;= 0) return { status: "error", message: "プランナー列がありません" };
+  if (width &lt;= 0) return { status: &quot;error&quot;, message: &quot;プランナー列がありません&quot; };
 
   var srcItems = src.getRange(1, 3, src.getLastRow(), 1).getValues();
   var restoredItems = 0;
   for (var r = 3; r &lt; srcItems.length; r++) {
-    var item = srcItems[r][0] ? srcItems[r][0].toString().trim() : "";
+    var item = srcItems[r][0] ? srcItems[r][0].toString().trim() : &quot;&quot;;
     if (!item || !monthlyMap[item]) continue;
     var values = src.getRange(r + 1, 4, 1, width).getValues();
     dst.getRange(r + 1, 4, 1, width).setValues(values);
     restoredItems++;
   }
 
-  dst.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日") + "（" + archiveName + "から当月項目を復元）");
+  dst.getRange(2, 2).setValue(&quot;更新日:&quot; + Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy年M月d日&quot;) + &quot;（&quot; + archiveName + &quot;から当月項目を復元）&quot;);
 
   return {
-    status: "ok",
+    status: &quot;ok&quot;,
     restored: restoredItems,
-    message: archiveName + " から " + restoredItems + " 項目を復元しました"
+    message: archiveName + &quot; から &quot; + restoredItems + &quot; 項目を復元しました&quot;
   };
 }
 
 // 変更ログから当月分の純粋な実績値を計算して現シートに反映
 // 各プランナー×当月項目について、最初の月内ログを基準に当月分を逆算する
 //   - 月内ログなし → 0
-//   - 最初のログが X→0 (X>0): 自己リセット → 当月値 = 現在値
+//   - 最初のログが X→0 (X&gt;0): 自己リセット → 当月値 = 現在値
 //   - 最初のログが 0→Y: 0スタート → 当月値 = 現在値
-//   - 最初のログが X→Y (Y>X>0): 上乗せ → 当月値 = 現在値 - X
-//   - 最初のログが X→Y (X>Y>0): 修正/減算 → 当月値 = 現在値 - Y
+//   - 最初のログが X→Y (Y&gt;X&gt;0): 上乗せ → 当月値 = 現在値 - X
+//   - 最初のログが X→Y (X&gt;Y&gt;0): 修正/減算 → 当月値 = 現在値 - Y
 //   - 結果が負になる場合は 0 にクランプ
 // 引数 monthPrefixParam: 指定すればそれを使う。省略時はデフォルトを使用（手動実行用）
 function recomputeMonthFromLogs(monthPrefixParam) {
-  var monthPrefix = monthPrefixParam || "2026/05/"; // ★手動実行時のデフォルト
+  var monthPrefix = monthPrefixParam || &quot;2026/05/&quot;; // ★手動実行時のデフォルト
   var ss = SpreadsheetApp.openById(SHEET_ID);
   var src = ss.getSheetByName(SHEET_NAME);
-  var logSheet = ss.getSheetByName("変更ログ");
-  if (!src) return { status: "error", message: SHEET_NAME + " シートが見つかりません" };
-  if (!logSheet) return { status: "error", message: "変更ログシートが見つかりません" };
+  var logSheet = ss.getSheetByName(&quot;変更ログ&quot;);
+  if (!src) return { status: &quot;error&quot;, message: SHEET_NAME + &quot; シートが見つかりません&quot; };
+  if (!logSheet) return { status: &quot;error&quot;, message: &quot;変更ログシートが見つかりません&quot; };
 
   var monthlyMap = {};
   for (var i = 0; i &lt; MONTHLY_RESET_ITEMS.length; i++) monthlyMap[MONTHLY_RESET_ITEMS[i]] = true;
@@ -506,7 +541,7 @@ function recomputeMonthFromLogs(monthPrefixParam) {
 
   var itemToRow = {};
   for (var r = 3; r &lt; srcData.length; r++) {
-    var it = srcData[r][2] ? srcData[r][2].toString().trim() : "";
+    var it = srcData[r][2] ? srcData[r][2].toString().trim() : &quot;&quot;;
     if (it) itemToRow[it] = r;
   }
 
@@ -516,12 +551,12 @@ function recomputeMonthFromLogs(monthPrefixParam) {
   var logDisp = logRange.getDisplayValues();
   var firstLog = {};
   for (var lr = 1; lr &lt; logVals.length; lr++) {
-    var date = logDisp[lr][0] || "";
+    var date = logDisp[lr][0] || &quot;&quot;;
     if (date.indexOf(monthPrefix) !== 0) continue;
-    var nm = logVals[lr][1] ? logVals[lr][1].toString().replace(/\s/g, "") : "";
-    var it = logVals[lr][2] ? logVals[lr][2].toString().trim() : "";
+    var nm = logVals[lr][1] ? logVals[lr][1].toString().replace(/\s/g, &quot;&quot;) : &quot;&quot;;
+    var it = logVals[lr][2] ? logVals[lr][2].toString().trim() : &quot;&quot;;
     if (!nm || !it || !monthlyMap[it]) continue;
-    var key = nm + "|" + it;
+    var key = nm + &quot;|&quot; + it;
     if (firstLog[key]) continue;
     firstLog[key] = {
       oldVal: Number(logVals[lr][3]) || 0,
@@ -538,10 +573,10 @@ function recomputeMonthFromLogs(monthPrefixParam) {
     if (row === undefined) continue;
     var newRow = [];
     for (var c = 3; c &lt; lastCol; c++) {
-      var nm = srcData[2][c] ? srcData[2][c].toString().replace(/\s/g, "") : "";
+      var nm = srcData[2][c] ? srcData[2][c].toString().replace(/\s/g, &quot;&quot;) : &quot;&quot;;
       if (!nm) { newRow.push(srcData[row][c]); continue; }
       var current = Number(srcData[row][c]) || 0;
-      var key = nm + "|" + it;
+      var key = nm + &quot;|&quot; + it;
       var log = firstLog[key];
       var nv;
       if (!log) nv = 0;
@@ -555,12 +590,177 @@ function recomputeMonthFromLogs(monthPrefixParam) {
     rowsUpdated++;
   }
 
-  src.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日") + "（" + monthPrefix + " ログから当月分を再計算）");
+  src.getRange(2, 2).setValue(&quot;更新日:&quot; + Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy年M月d日&quot;) + &quot;（&quot; + monthPrefix + &quot; ログから当月分を再計算）&quot;);
 
   return {
-    status: "ok",
+    status: &quot;ok&quot;,
     rowsUpdated: rowsUpdated,
-    message: monthPrefix + " のログから " + rowsUpdated + " 行を再計算しました"
+    message: monthPrefix + &quot; のログから &quot; + rowsUpdated + &quot; 行を再計算しました&quot;
+  };
+}
+
+// apo.ozzio.info からの月次データを受け取って FAS スプレッドシートに反映
+// payload: { action:&quot;sync_apo&quot;, month:&quot;2026/05&quot;, data:[{apo_name, values:{...}}, ...], syncDate:&quot;...&quot; }
+// values: アポイントコール数 / アポイントラウンド数 / アポイント（確定）軒数 / アポイント（確定）人数
+function syncFromApo(payload) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  if (!ws) return { status: &quot;error&quot;, message: SHEET_NAME + &quot; シートが見つかりません&quot; };
+
+  var data = payload.data || [];
+  if (!data.length) return { status: &quot;error&quot;, message: &quot;データが空です&quot; };
+
+  // 名前→列マップ
+  var names = ws.getRange(3, 1, 1, ws.getLastColumn()).getValues()[0];
+  var nameToCol = {};
+  for (var i = 0; i &lt; names.length; i++) {
+    if (names[i]) nameToCol[names[i].toString().replace(/\s/g, &quot;&quot;)] = i + 1;
+  }
+  // 項目→行マップ
+  var items = ws.getRange(1, 3, ws.getLastRow(), 1).getValues();
+  var itemToRow = {};
+  for (var r = 0; r &lt; items.length; r++) {
+    if (items[r][0]) itemToRow[items[r][0].toString().trim()] = r + 1;
+  }
+
+  var processed = 0, skipped = 0, conflictsDetected = 0;
+  var skippedNames = [];
+
+  for (var d = 0; d &lt; data.length; d++) {
+    var entry = data[d];
+    var apoName = entry.apo_name || &quot;&quot;;
+    var fasName = APO_TO_FAS_NAME[apoName];
+    if (!fasName) {
+      skipped++;
+      skippedNames.push(apoName + &quot;（マッピングなし）&quot;);
+      continue;
+    }
+    var nameKey = fasName.replace(/\s/g, &quot;&quot;);
+    var col = nameToCol[nameKey];
+    if (!col) {
+      skipped++;
+      skippedNames.push(apoName + &quot;→&quot; + fasName + &quot;（FAS列なし）&quot;);
+      continue;
+    }
+
+    // 各項目の更新前値を取得
+    var values = entry.values || {};
+    var updatedKeys = [];
+    var oldValues = {};
+    var keys = Object.keys(values);
+    for (var k = 0; k &lt; keys.length; k++) {
+      var item = keys[k];
+      var row = itemToRow[item];
+      if (!row) continue;
+      var oldVal = ws.getRange(row, col).getValue();
+      var oldNum = (oldVal !== null &amp;&amp; oldVal !== &quot;&quot;) ? (Number(oldVal) || 0) : 0;
+      var newNum = Number(values[item]) || 0;
+      if (oldNum !== newNum) {
+        oldValues[item] = oldNum;
+        ws.getRange(row, col).setValue(newNum);
+        updatedKeys.push(item);
+
+        // 競合検知: 直近24時間以内の手動入力が同じ項目にあれば記録
+        if (detectConflict(ss, fasName, item, &quot;apo&quot;)) conflictsDetected++;
+      }
+    }
+    if (updatedKeys.length &gt; 0) {
+      writeLog(ss, fasName, values, updatedKeys, oldValues, &quot;apo&quot;);
+      processed++;
+    }
+  }
+
+  ws.getRange(2, 2).setValue(&quot;更新日:&quot; + Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy年M月d日 HH:mm&quot;) + &quot;（apo自動同期）&quot;);
+
+  return {
+    status: &quot;ok&quot;,
+    processed: processed,
+    skipped: skipped,
+    skippedNames: skippedNames,
+    conflicts: conflictsDetected,
+    syncDate: payload.syncDate || &quot;&quot;
+  };
+}
+
+// 競合検知: 同じ項目が今日「manual と apo」両方で更新されたか確認、あれば「競合ログ」シートに記録
+// 戻り値: 競合を検出して記録したら true
+function detectConflict(ss, name, item, currentSource) {
+  var logSheet = ss.getSheetByName(&quot;変更ログ&quot;);
+  if (!logSheet) return false;
+  var data = logSheet.getDataRange().getValues();
+  var disp = logSheet.getDataRange().getDisplayValues();
+  var todayStr = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd&quot;);
+  var oppositeSource = (currentSource === &quot;apo&quot;) ? &quot;manual&quot; : &quot;apo&quot;;
+  var nameKey = name.replace(/\s/g, &quot;&quot;);
+
+  for (var r = data.length - 1; r &gt;= 1; r--) {
+    var dateStr = disp[r][0] || &quot;&quot;;
+    if (dateStr.indexOf(todayStr) !== 0) continue; // 今日のログのみ対象
+    var logName = data[r][1] ? data[r][1].toString().replace(/\s/g, &quot;&quot;) : &quot;&quot;;
+    if (logName !== nameKey) continue;
+    var logItem = data[r][2] ? data[r][2].toString() : &quot;&quot;;
+    if (logItem !== item) continue;
+    var logSource = data[r][5] ? data[r][5].toString() : &quot;manual&quot;;
+    if (logSource === oppositeSource) {
+      // 競合発生 → 競合ログに記録
+      recordConflict(ss, todayStr, name, item, currentSource, oppositeSource);
+      return true;
+    }
+  }
+  return false;
+}
+
+function recordConflict(ss, dateStr, name, item, sourceA, sourceB) {
+  var sh = ss.getSheetByName(&quot;競合ログ&quot;);
+  if (!sh) {
+    sh = ss.insertSheet(&quot;競合ログ&quot;);
+    sh.appendRow([&quot;検出日時&quot;, &quot;対象日&quot;, &quot;プランナー&quot;, &quot;項目&quot;, &quot;ソース1&quot;, &quot;ソース2&quot;, &quot;状態&quot;]);
+    sh.getRange(1, 1, 1, 7).setFontWeight(&quot;bold&quot;);
+  }
+  // 既に同じ (対象日, プランナー, 項目) で active な競合があればスキップ
+  var data = sh.getDataRange().getValues();
+  for (var r = 1; r &lt; data.length; r++) {
+    if (data[r][1] === dateStr &amp;&amp; data[r][2] === name &amp;&amp; data[r][3] === item &amp;&amp; (data[r][6] || &quot;active&quot;) === &quot;active&quot;) {
+      return;
+    }
+  }
+  var now = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd HH:mm:ss&quot;);
+  sh.appendRow([now, dateStr, name, item, sourceA, sourceB, &quot;active&quot;]);
+}
+
+// 競合一覧取得（active のみ）
+function getConflicts() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(&quot;競合ログ&quot;);
+  if (!sh) return { status: &quot;ok&quot;, conflicts: [] };
+  var data = sh.getDataRange().getValues();
+  var conflicts = [];
+  for (var r = 1; r &lt; data.length; r++) {
+    var status = data[r][6] || &quot;active&quot;;
+    if (status !== &quot;active&quot;) continue;
+    conflicts.push({
+      detectedAt: data[r][0] ? data[r][0].toString() : &quot;&quot;,
+      date: data[r][1] ? data[r][1].toString() : &quot;&quot;,
+      name: data[r][2] ? data[r][2].toString() : &quot;&quot;,
+      item: data[r][3] ? data[r][3].toString() : &quot;&quot;,
+      sources: [(data[r][4] || &quot;&quot;).toString(), (data[r][5] || &quot;&quot;).toString()]
+    });
+  }
+  return { status: &quot;ok&quot;, conflicts: conflicts };
+}
+
+// apo同期ステータス取得（最終同期時刻、登録ユーザー数等）
+function getApoStatus() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  var statusCell = ws ? ws.getRange(2, 2).getValue() : &quot;&quot;;
+  var apoUsers = [];
+  for (var apoName in APO_TO_FAS_NAME) apoUsers.push(APO_TO_FAS_NAME[apoName]);
+  return {
+    status: &quot;ok&quot;,
+    apoUserCount: apoUsers.length,
+    apoUsers: apoUsers,
+    lastUpdate: statusCell ? statusCell.toString() : &quot;&quot;
   };
 }
 
@@ -573,31 +773,31 @@ function monthlyResetTrigger() {
   var prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   var year = prev.getFullYear();
   var month = prev.getMonth() + 1;
-  var monthPrefix = year + "/" + ("0" + month).slice(-2) + "/";
-  var archiveName = year + "年" + month + "月";
+  var monthPrefix = year + &quot;/&quot; + (&quot;0&quot; + month).slice(-2) + &quot;/&quot;;
+  var archiveName = year + &quot;年&quot; + month + &quot;月&quot;;
 
-  var execLog = ss.getSheetByName("自動実行ログ");
+  var execLog = ss.getSheetByName(&quot;自動実行ログ&quot;);
   if (!execLog) {
-    execLog = ss.insertSheet("自動実行ログ");
-    execLog.appendRow(["実行日時", "対象月", "結果", "詳細"]);
-    execLog.getRange(1, 1, 1, 4).setFontWeight("bold");
+    execLog = ss.insertSheet(&quot;自動実行ログ&quot;);
+    execLog.appendRow([&quot;実行日時&quot;, &quot;対象月&quot;, &quot;結果&quot;, &quot;詳細&quot;]);
+    execLog.getRange(1, 1, 1, 4).setFontWeight(&quot;bold&quot;);
   }
-  var nowStr = Utilities.formatDate(now, "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  var nowStr = Utilities.formatDate(now, &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd HH:mm:ss&quot;);
 
   try {
     // 1. 前月分を純粋な実績値に再計算（上書き派の累計を当月分のみに変換）
     var rec = recomputeMonthFromLogs(monthPrefix);
-    if (rec.status !== "ok") throw new Error("recompute失敗: " + rec.message);
+    if (rec.status !== &quot;ok&quot;) throw new Error(&quot;recompute失敗: &quot; + rec.message);
 
     // 2. アーカイブ＋リセット
     var arc = archiveAndResetMonth(archiveName);
-    if (arc.status !== "ok") throw new Error("archive失敗: " + arc.message);
+    if (arc.status !== &quot;ok&quot;) throw new Error(&quot;archive失敗: &quot; + arc.message);
 
-    execLog.appendRow([nowStr, archiveName, "成功", "再計算" + rec.rowsUpdated + "行 / " + arc.message]);
-    return { status: "ok", archiveName: archiveName, monthPrefix: monthPrefix };
+    execLog.appendRow([nowStr, archiveName, &quot;成功&quot;, &quot;再計算&quot; + rec.rowsUpdated + &quot;行 / &quot; + arc.message]);
+    return { status: &quot;ok&quot;, archiveName: archiveName, monthPrefix: monthPrefix };
   } catch (err) {
-    execLog.appendRow([nowStr, archiveName, "失敗", String(err)]);
-    return { status: "error", message: String(err) };
+    execLog.appendRow([nowStr, archiveName, &quot;失敗&quot;, String(err)]);
+    return { status: &quot;error&quot;, message: String(err) };
   }
 }
 
@@ -608,22 +808,22 @@ function setupAutoMonthlyReset() {
   var triggers = ScriptApp.getProjectTriggers();
   var removed = 0;
   for (var i = 0; i &lt; triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === "monthlyResetTrigger") {
+    if (triggers[i].getHandlerFunction() === &quot;monthlyResetTrigger&quot;) {
       ScriptApp.deleteTrigger(triggers[i]);
       removed++;
     }
   }
   // 毎月1日 03:00 JST にトリガー設定
-  ScriptApp.newTrigger("monthlyResetTrigger")
+  ScriptApp.newTrigger(&quot;monthlyResetTrigger&quot;)
     .timeBased()
     .onMonthDay(1)
     .atHour(3)
-    .inTimezone("Asia/Tokyo")
+    .inTimezone(&quot;Asia/Tokyo&quot;)
     .create();
   return {
-    status: "ok",
+    status: &quot;ok&quot;,
     removed: removed,
-    message: "毎月1日 03:00 (JST) に monthlyResetTrigger を自動実行するトリガーを設定しました"
+    message: &quot;毎月1日 03:00 (JST) に monthlyResetTrigger を自動実行するトリガーを設定しました&quot;
   };
 }
 
@@ -632,33 +832,38 @@ function removeAutoMonthlyReset() {
   var triggers = ScriptApp.getProjectTriggers();
   var removed = 0;
   for (var i = 0; i &lt; triggers.length; i++) {
-    if (triggers[i].getHandlerFunction() === "monthlyResetTrigger") {
+    if (triggers[i].getHandlerFunction() === &quot;monthlyResetTrigger&quot;) {
       ScriptApp.deleteTrigger(triggers[i]);
       removed++;
     }
   }
-  return { status: "ok", removed: removed, message: removed + " 個のトリガーを削除しました" };
+  return { status: &quot;ok&quot;, removed: removed, message: removed + &quot; 個のトリガーを削除しました&quot; };
 }
 
-function writeLog(ss, name, values, updatedKeys, oldValues) {
-  var logSheet = ss.getSheetByName("変更ログ");
+function writeLog(ss, name, values, updatedKeys, oldValues, source) {
+  var logSheet = ss.getSheetByName(&quot;変更ログ&quot;);
   if (!logSheet) {
-    logSheet = ss.insertSheet("変更ログ");
-    logSheet.appendRow(["日時", "名前", "変更項目", "変更前", "変更後"]);
-    logSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
+    logSheet = ss.insertSheet(&quot;変更ログ&quot;);
+    logSheet.appendRow([&quot;日時&quot;, &quot;名前&quot;, &quot;変更項目&quot;, &quot;変更前&quot;, &quot;変更後&quot;, &quot;ソース&quot;]);
+    logSheet.getRange(1, 1, 1, 6).setFontWeight(&quot;bold&quot;);
   }
-  // ヘッダーが4列の場合は5列に更新
-  var header = logSheet.getRange(1, 1, 1, 5).getValues()[0];
-  if (!header[3] || header[3] === "変更後の値") {
-    logSheet.getRange(1, 4).setValue("変更前");
-    logSheet.getRange(1, 5).setValue("変更後");
-    logSheet.getRange(1, 1, 1, 5).setFontWeight("bold");
+  // ヘッダー整備（4列→5列→6列の段階アップグレード）
+  var headerVals = logSheet.getRange(1, 1, 1, 6).getValues()[0];
+  if (!headerVals[3] || headerVals[3] === &quot;変更後の値&quot;) {
+    logSheet.getRange(1, 4).setValue(&quot;変更前&quot;);
+    logSheet.getRange(1, 5).setValue(&quot;変更後&quot;);
   }
-  var now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  if (!headerVals[5]) {
+    logSheet.getRange(1, 6).setValue(&quot;ソース&quot;);
+  }
+  logSheet.getRange(1, 1, 1, 6).setFontWeight(&quot;bold&quot;);
+
+  var src = source || &quot;manual&quot;;
+  var now = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd HH:mm:ss&quot;);
   for (var i = 0; i &lt; updatedKeys.length; i++) {
     var key = updatedKeys[i];
-    var oldVal = oldValues &amp;&amp; oldValues[key] !== undefined ? oldValues[key] : "";
-    logSheet.appendRow([now, name, key, oldVal, values[key]]);
+    var oldVal = oldValues &amp;&amp; oldValues[key] !== undefined ? oldValues[key] : &quot;&quot;;
+    logSheet.appendRow([now, name, key, oldVal, values[key], src]);
   }
 }
 </pre>
