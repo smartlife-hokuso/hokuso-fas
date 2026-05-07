@@ -668,11 +668,13 @@ function syncFromApo(payload) {
       var currentFasVal = Number(ws.getRange(row, col).getValue()) || 0;
 
       if (!existing) {
-        // ブートストラップ: 状態シートに新規追加、既存FAS値は基本そのまま
-        if (currentFasVal === 0 && newApoVal > 0) {
-          // FAS未入力 & apoに値あり → 初期投入
+        // ブートストラップ（初回のみ「上書き」モード）:
+        // FAS値をapo現在値に揃え、状態シートに記録する。
+        // これにより、上書き同期からの移行時に取り残された差分が解消される。
+        // 以降は通常の差分加算モードで動く。
+        if (newApoVal !== currentFasVal) {
+          oldValues[item] = currentFasVal;
           ws.getRange(row, col).setValue(newApoVal);
-          oldValues[item] = 0;
           updatedKeys.push(item);
           newValuesForLog[item] = newApoVal;
         }
