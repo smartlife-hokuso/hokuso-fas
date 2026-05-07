@@ -76,6 +76,8 @@ function doGet(e) {
     json = JSON.stringify(getConflicts());
   } else if (action === &quot;apo_status&quot;) {
     json = JSON.stringify(getApoStatus());
+  } else if (action === &quot;notices&quot;) {
+    json = JSON.stringify(getNotices());
   } else {
     json = JSON.stringify(readData(e));
   }
@@ -823,6 +825,35 @@ function getConflicts() {
     });
   }
   return { status: &quot;ok&quot;, conflicts: conflicts };
+}
+
+// 連絡事項取得（「連絡事項」シートから、表示列が&quot;active&quot;または空の行のみ、新しい順）
+// シートが無ければ自動作成
+function getNotices() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(&quot;連絡事項&quot;);
+  if (!sh) {
+    sh = ss.insertSheet(&quot;連絡事項&quot;);
+    sh.appendRow([&quot;日付&quot;, &quot;内容&quot;, &quot;表示&quot;]);
+    sh.getRange(1, 1, 1, 3).setFontWeight(&quot;bold&quot;);
+    sh.getRange(&quot;A:A&quot;).setNumberFormat(&quot;yyyy/MM/dd&quot;);
+    // 初期データ
+    var today = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd&quot;);
+    sh.appendRow([today, &quot;連絡事項機能を追加しました&quot;, &quot;active&quot;]);
+  }
+  var data = sh.getDataRange().getDisplayValues();
+  var notices = [];
+  for (var r = 1; r &lt; data.length; r++) {
+    var hidden = (data[r][2] || &quot;&quot;).toString().trim();
+    if (hidden &amp;&amp; hidden !== &quot;active&quot; &amp;&amp; hidden !== &quot;表示&quot;) continue;
+    var date = data[r][0] ? data[r][0].toString() : &quot;&quot;;
+    var content = data[r][1] ? data[r][1].toString() : &quot;&quot;;
+    if (!content) continue;
+    notices.push({ date: date, content: content });
+  }
+  // 新しい順（追加順の逆）
+  notices.reverse();
+  return { status: &quot;ok&quot;, notices: notices };
 }
 
 // apo同期ステータス取得（最終同期時刻、登録ユーザー数等）

@@ -73,6 +73,19 @@ body {
 .ic-dx { background: linear-gradient(135deg, #c97a4a, #e0a56b); }
 
 /* 検索 */
+.top-row { display: flex; gap: 14px; margin-bottom: 24px; align-items: stretch; }
+.top-row .search-area { flex: 1 1 50%; margin-bottom: 0; min-width: 0; }
+.top-row .notice-area { flex: 1 1 50%; min-width: 0; background: linear-gradient(135deg, #f3eef6, #ede5f2); border: 1px solid rgba(180,160,200,0.35); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(120,100,160,0.06); }
+.notice-area .notice-title { font-size: 13px; font-weight: 600; color: #6b5ea6; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.notice-area .notice-list { flex: 1; overflow-y: auto; max-height: 90px; font-size: 12px; line-height: 1.55; color: #4a4060; }
+.notice-area .notice-item { padding: 3px 0; border-bottom: 1px dashed rgba(180,160,200,0.3); }
+.notice-area .notice-item:last-child { border-bottom: none; }
+.notice-area .notice-date { color: #8b7ea3; font-size: 10px; font-weight: 600; margin-right: 6px; }
+.notice-area .notice-empty { font-size: 11px; color: #a09bb0; text-align: center; padding: 14px 0; }
+@media (max-width: 720px) {
+  .top-row { flex-direction: column; gap: 10px; }
+  .top-row .search-area, .top-row .notice-area { flex: none; width: 100%; }
+}
 .search-area { margin-bottom: 24px; text-align: center; }
 .search-area input {
     width: 100%; max-width: 460px; padding: 11px 22px;
@@ -276,10 +289,16 @@ body {
         <div id="conflictDetails" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #e0b888; font-size:13px; color:#7a4f15;"></div>
     </div>
 
-    <div class="search-area">
-        <input type="text" id="q" placeholder="プランナー名で検索..." oninput="filter()">
-        <div style="margin-top: 10px;">
-            <a href="log.html" style="color: #6b5ea6; font-size: 13px; text-decoration: none; opacity: 0.7;">変更ログを確認</a>
+    <div class="top-row">
+        <div class="search-area">
+            <input type="text" id="q" placeholder="プランナー名で検索..." oninput="filter()">
+            <div style="margin-top: 10px;">
+                <a href="log.html" style="color: #6b5ea6; font-size: 13px; text-decoration: none; opacity: 0.7;">変更ログを確認</a>
+            </div>
+        </div>
+        <div class="notice-area">
+            <div class="notice-title">📢 連絡事項</div>
+            <div class="notice-list" id="noticeList"><div class="notice-empty">読み込み中...</div></div>
         </div>
     </div>
 
@@ -581,9 +600,38 @@ function toggleConflictDetails() {
     }
 }
 
+// 連絡事項を取得して表示
+function loadNotices() {
+    var script = document.createElement("script");
+    script.src = GAS_URL + "?action=notices&callback=onNoticesLoaded&_=" + Date.now();
+    document.body.appendChild(script);
+}
+
+function onNoticesLoaded(data) {
+    var area = document.getElementById("noticeList");
+    if (!area) return;
+    if (!data || data.status !== "ok" || !data.notices || data.notices.length === 0) {
+        area.innerHTML = '<div class="notice-empty">連絡事項はありません</div>';
+        return;
+    }
+    var html = "";
+    for (var i = 0; i < data.notices.length; i++) {
+        var n = data.notices[i];
+        var d = document.createElement("div");
+        d.textContent = n.content;
+        var content = d.innerHTML;
+        var dt = document.createElement("div");
+        dt.textContent = n.date;
+        var date = dt.innerHTML;
+        html += '<div class="notice-item"><span class="notice-date">' + date + '</span>' + content + '</div>';
+    }
+    area.innerHTML = html;
+}
+
 // ページ読み込み時に集計を取得
 loadTotals();
 loadConflicts();
+loadNotices();
 </script>
 </body>
 </html>
