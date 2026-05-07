@@ -826,6 +826,159 @@ function getApoStatus() {
   };
 }
 
+// ─── apo.ozzio.info 外部API版（GAS直接呼出版、apo_sync.py/launchd不要）─────
+
+// APIキーをScriptProperties（GAS暗号化ストア）に保存
+// ★初回のみGASエディタから setApoApiKey 関数を実行する
+//   または別途 setApoApiKeyManual から手動設定
+function setApoApiKey(key) {
+  if (!key) {
+    // 引数省略時はここに直書きしたキーを使う（手動実行用）
+    key = "PUT_YOUR_API_KEY_HERE";
+  }
+  if (key === "PUT_YOUR_API_KEY_HERE") {
+    return { status: "error", message: "APIキーが設定されていません。setApoApiKeyの第1引数または関数内defaultに実キーを入れて実行してください" };
+  }
+  PropertiesService.getScriptProperties().setProperty("APO_API_KEY", key);
+  return { status: "ok", message: "APIキーを保存しました（先頭8文字: " + key.substring(0, 8) + "...）" };
+}
+
+function getApoApiKey() {
+  return PropertiesService.getScriptProperties().getProperty("APO_API_KEY");
+}
+
+// apo外部APIの1人分レコードをFASのアポイント値にマッピング（旧: transform_apo_to_fas相当）
+function transformApoRowToFasValues(row) {
+  var outCalls = Number(row.total_outbound_calls) || 0;
+  var inCalls = Number(row.total_inbound_calls) || 0;
+  var outPromises = Number(row.total_outbound_visit_promises) || 0;
+  var inPromises = Number(row.total_inbound_visit_promises) || 0;
+  var outVisitors = Number(row.total_outbound_expected_visitors) || 0;
+  var inVisitors = Number(row.total_inbound_expected_visitors) || 0;
+  return {
+    "アポイントコール数": outCalls + inCalls,
+    "アポイント（確定）軒数": outPromises + inPromises,
+    "アポイント（確定）人数": outVisitors + inVisitors
+  };
+}
+
+// apo外部APIから当月分を取得してFASに同期する（時間トリガーから呼ばれる）
+function fetchApoMonthlyAndSync() {
+  var apiKey = getApoApiKey();
+  if (!apiKey) {
+    return { status: "error", message: "APIキー未設定。setApoApiKey('...')をGASエディタから1回実行してください" };
+  }
+
+  var now = new Date();
+  // JST時刻計算
+  var jst = new Date(now.getTime() + 9 * 3600 * 1000);
+  var year = jst.getUTCFullYear();
+  var month = jst.getUTCMonth() + 1;
+
+  var url = "https://apo.ozzio.info/api/external/monthly?year=" + year + "&month=" + month;
+  var response;
+  try {
+    response = UrlFetchApp.fetch(url, {
+      method: "get",
+      headers: {
+        "X-API-Key": apiKey,
+        "User-Agent": "FAS-Sync/1.0 (GAS)"
+      },
+      muteHttpExceptions: true,
+      followRedirects: true
+    });
+  } catch (e) {
+    return _logApoFetchResult({ status: "error", message: "fetchエラー: " + e });
+  }
+
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+  if (code !== 200) {
+    return _logApoFetchResult({ status: "error", message: "HTTP " + code + ": " + body.substring(0, 200) });
+  }
+
+  var json;
+  try { json = JSON.parse(body); } catch (e) {
+    return _logApoFetchResult({ status: "error", message: "JSON parseエラー: " + body.substring(0, 200) });
+  }
+  if (!json.success || !Array.isArray(json.data)) {
+    return _logApoFetchResult({ status: "error", message: "予期しないレスポンス形式: " + body.substring(0, 200) });
+  }
+
+  // syncFromApo の payload 形式に変換
+  var syncData = [];
+  for (var i = 0; i < json.data.length; i++) {
+    var row = json.data[i];
+    var planner = row.planner_name || row.appointer_name || ""; // 旧API互換も一応
+    if (!planner) continue;
+    syncData.push({ apo_name: planner, values: transformApoRowToFasValues(row) });
+  }
+
+  var payload = {
+    action: "sync_apo",
+    month: year + "/" + ("0" + month).slice(-2),
+    data: syncData,
+    syncDate: Utilities.formatDate(now, "Asia/Tokyo", "yyyy-MM-dd HH:mm:ss")
+  };
+
+  var result = syncFromApo(payload);
+  return _logApoFetchResult(result);
+}
+
+function _logApoFetchResult(result) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName("自動実行ログ");
+  if (!sh) {
+    sh = ss.insertSheet("自動実行ログ");
+    sh.appendRow(["実行日時", "対象月", "結果", "詳細"]);
+    sh.getRange(1, 1, 1, 4).setFontWeight("bold");
+  }
+  var nowStr = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  var summary;
+  if (result && result.status === "ok") {
+    summary = "反映" + (result.processed || 0) + "/ブートストラップ" + (result.bootstrapped || 0) + "/スキップ" + (result.skipped || 0) + "/競合" + (result.conflicts || 0);
+  } else {
+    summary = (result && result.message) || "不明";
+  }
+  sh.appendRow([nowStr, "apo同期", (result && result.status) || "?", summary]);
+  return result;
+}
+
+// 自動同期トリガー設定: 1時間ごとに fetchApoMonthlyAndSync を実行
+// ★GASエディタから1回だけ実行
+function setupAutoApoSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "fetchApoMonthlyAndSync") {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  ScriptApp.newTrigger("fetchApoMonthlyAndSync")
+    .timeBased()
+    .everyHours(1)
+    .create();
+  return {
+    status: "ok",
+    removed: removed,
+    message: "1時間ごとに fetchApoMonthlyAndSync を自動実行するトリガーを設定しました"
+  };
+}
+
+// 自動同期トリガーを削除
+function removeAutoApoSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "fetchApoMonthlyAndSync") {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  return { status: "ok", removed: removed, message: removed + " 個のトリガーを削除しました" };
+}
+
 // 自動月次リセット: 毎月1日 03:00 JST に時間トリガーから呼ばれる
 // 前月分を再計算→アーカイブ→現シートを0リセット の順で実行
 function monthlyResetTrigger() {

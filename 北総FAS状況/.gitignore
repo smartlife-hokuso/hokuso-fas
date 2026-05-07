@@ -1,5 +1,2 @@
-# apo.ozzio.info パスワードを含むスクリプトはローカル専用
-apo_sync.py
-
 # launchd ログ等
 *.log

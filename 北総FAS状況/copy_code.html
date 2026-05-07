@@ -838,6 +838,159 @@ function getApoStatus() {
   };
 }
 
+// ─── apo.ozzio.info 外部API版（GAS直接呼出版、apo_sync.py/launchd不要）─────
+
+// APIキーをScriptProperties（GAS暗号化ストア）に保存
+// ★初回のみGASエディタから setApoApiKey 関数を実行する
+//   または別途 setApoApiKeyManual から手動設定
+function setApoApiKey(key) {
+  if (!key) {
+    // 引数省略時はここに直書きしたキーを使う（手動実行用）
+    key = &quot;PUT_YOUR_API_KEY_HERE&quot;;
+  }
+  if (key === &quot;PUT_YOUR_API_KEY_HERE&quot;) {
+    return { status: &quot;error&quot;, message: &quot;APIキーが設定されていません。setApoApiKeyの第1引数または関数内defaultに実キーを入れて実行してください&quot; };
+  }
+  PropertiesService.getScriptProperties().setProperty(&quot;APO_API_KEY&quot;, key);
+  return { status: &quot;ok&quot;, message: &quot;APIキーを保存しました（先頭8文字: &quot; + key.substring(0, 8) + &quot;...）&quot; };
+}
+
+function getApoApiKey() {
+  return PropertiesService.getScriptProperties().getProperty(&quot;APO_API_KEY&quot;);
+}
+
+// apo外部APIの1人分レコードをFASのアポイント値にマッピング（旧: transform_apo_to_fas相当）
+function transformApoRowToFasValues(row) {
+  var outCalls = Number(row.total_outbound_calls) || 0;
+  var inCalls = Number(row.total_inbound_calls) || 0;
+  var outPromises = Number(row.total_outbound_visit_promises) || 0;
+  var inPromises = Number(row.total_inbound_visit_promises) || 0;
+  var outVisitors = Number(row.total_outbound_expected_visitors) || 0;
+  var inVisitors = Number(row.total_inbound_expected_visitors) || 0;
+  return {
+    &quot;アポイントコール数&quot;: outCalls + inCalls,
+    &quot;アポイント（確定）軒数&quot;: outPromises + inPromises,
+    &quot;アポイント（確定）人数&quot;: outVisitors + inVisitors
+  };
+}
+
+// apo外部APIから当月分を取得してFASに同期する（時間トリガーから呼ばれる）
+function fetchApoMonthlyAndSync() {
+  var apiKey = getApoApiKey();
+  if (!apiKey) {
+    return { status: &quot;error&quot;, message: &quot;APIキー未設定。setApoApiKey(&#x27;...&#x27;)をGASエディタから1回実行してください&quot; };
+  }
+
+  var now = new Date();
+  // JST時刻計算
+  var jst = new Date(now.getTime() + 9 * 3600 * 1000);
+  var year = jst.getUTCFullYear();
+  var month = jst.getUTCMonth() + 1;
+
+  var url = &quot;https://apo.ozzio.info/api/external/monthly?year=&quot; + year + &quot;&amp;month=&quot; + month;
+  var response;
+  try {
+    response = UrlFetchApp.fetch(url, {
+      method: &quot;get&quot;,
+      headers: {
+        &quot;X-API-Key&quot;: apiKey,
+        &quot;User-Agent&quot;: &quot;FAS-Sync/1.0 (GAS)&quot;
+      },
+      muteHttpExceptions: true,
+      followRedirects: true
+    });
+  } catch (e) {
+    return _logApoFetchResult({ status: &quot;error&quot;, message: &quot;fetchエラー: &quot; + e });
+  }
+
+  var code = response.getResponseCode();
+  var body = response.getContentText();
+  if (code !== 200) {
+    return _logApoFetchResult({ status: &quot;error&quot;, message: &quot;HTTP &quot; + code + &quot;: &quot; + body.substring(0, 200) });
+  }
+
+  var json;
+  try { json = JSON.parse(body); } catch (e) {
+    return _logApoFetchResult({ status: &quot;error&quot;, message: &quot;JSON parseエラー: &quot; + body.substring(0, 200) });
+  }
+  if (!json.success || !Array.isArray(json.data)) {
+    return _logApoFetchResult({ status: &quot;error&quot;, message: &quot;予期しないレスポンス形式: &quot; + body.substring(0, 200) });
+  }
+
+  // syncFromApo の payload 形式に変換
+  var syncData = [];
+  for (var i = 0; i &lt; json.data.length; i++) {
+    var row = json.data[i];
+    var planner = row.planner_name || row.appointer_name || &quot;&quot;; // 旧API互換も一応
+    if (!planner) continue;
+    syncData.push({ apo_name: planner, values: transformApoRowToFasValues(row) });
+  }
+
+  var payload = {
+    action: &quot;sync_apo&quot;,
+    month: year + &quot;/&quot; + (&quot;0&quot; + month).slice(-2),
+    data: syncData,
+    syncDate: Utilities.formatDate(now, &quot;Asia/Tokyo&quot;, &quot;yyyy-MM-dd HH:mm:ss&quot;)
+  };
+
+  var result = syncFromApo(payload);
+  return _logApoFetchResult(result);
+}
+
+function _logApoFetchResult(result) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var sh = ss.getSheetByName(&quot;自動実行ログ&quot;);
+  if (!sh) {
+    sh = ss.insertSheet(&quot;自動実行ログ&quot;);
+    sh.appendRow([&quot;実行日時&quot;, &quot;対象月&quot;, &quot;結果&quot;, &quot;詳細&quot;]);
+    sh.getRange(1, 1, 1, 4).setFontWeight(&quot;bold&quot;);
+  }
+  var nowStr = Utilities.formatDate(new Date(), &quot;Asia/Tokyo&quot;, &quot;yyyy/MM/dd HH:mm:ss&quot;);
+  var summary;
+  if (result &amp;&amp; result.status === &quot;ok&quot;) {
+    summary = &quot;反映&quot; + (result.processed || 0) + &quot;/ブートストラップ&quot; + (result.bootstrapped || 0) + &quot;/スキップ&quot; + (result.skipped || 0) + &quot;/競合&quot; + (result.conflicts || 0);
+  } else {
+    summary = (result &amp;&amp; result.message) || &quot;不明&quot;;
+  }
+  sh.appendRow([nowStr, &quot;apo同期&quot;, (result &amp;&amp; result.status) || &quot;?&quot;, summary]);
+  return result;
+}
+
+// 自動同期トリガー設定: 1時間ごとに fetchApoMonthlyAndSync を実行
+// ★GASエディタから1回だけ実行
+function setupAutoApoSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i &lt; triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === &quot;fetchApoMonthlyAndSync&quot;) {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  ScriptApp.newTrigger(&quot;fetchApoMonthlyAndSync&quot;)
+    .timeBased()
+    .everyHours(1)
+    .create();
+  return {
+    status: &quot;ok&quot;,
+    removed: removed,
+    message: &quot;1時間ごとに fetchApoMonthlyAndSync を自動実行するトリガーを設定しました&quot;
+  };
+}
+
+// 自動同期トリガーを削除
+function removeAutoApoSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i &lt; triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === &quot;fetchApoMonthlyAndSync&quot;) {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  return { status: &quot;ok&quot;, removed: removed, message: removed + &quot; 個のトリガーを削除しました&quot; };
+}
+
 // 自動月次リセット: 毎月1日 03:00 JST に時間トリガーから呼ばれる
 // 前月分を再計算→アーカイブ→現シートを0リセット の順で実行
 function monthlyResetTrigger() {
