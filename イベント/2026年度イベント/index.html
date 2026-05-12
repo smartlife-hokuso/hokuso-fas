@@ -600,6 +600,7 @@ months.forEach((month, i) => {
         if (me[d]) {
             me[d].forEach(ev => {
                 const chip = document.createElement('a');
+                chip.href = '#';
                 var isSeminar = ev.type === 'seminar';
                 chip.className = 'event-chip ' + venueClass(ev.venue) + (isSeminar ? ' seminar' : ' ' + genreClass(ev.circle));
                 const icon = isSeminar ? '⭐' : venueIcon(ev.venue);
@@ -1255,6 +1256,7 @@ function rebuildAll() {
             if (me[d]) {
                 me[d].forEach(ev => {
                     const chip = document.createElement('a');
+                    chip.href = '#';
                     var isSeminar = ev.type === 'seminar';
                     chip.className = 'event-chip ' + venueClass(ev.venue) + (isSeminar ? ' seminar' : ' ' + genreClass(ev.circle));
                     const icon = isSeminar ? '⭐' : venueIcon(ev.venue);
