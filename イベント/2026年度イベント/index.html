@@ -76,6 +76,56 @@ body {
 .calendar-section.active { display: block; animation: fadeIn 0.4s ease; }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
+.venue-nav { display: flex; justify-content: center; gap: 10px; margin-bottom: 24px; flex-wrap: wrap; }
+.venue-btn {
+    padding: 10px 22px; border: 2px solid rgba(200, 180, 220, 0.5); border-radius: 30px;
+    background: rgba(255,255,255,0.8); color: #9a80b0; cursor: pointer;
+    font-family: "Zen Maru Gothic", sans-serif;
+    font-size: 13px; font-weight: 600; transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+}
+.venue-btn:hover {
+    background: linear-gradient(135deg, #b8d4e8, #a8c4d8); color: white;
+    border-color: transparent; transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(168, 196, 216, 0.35);
+}
+.venue-btn.active {
+    background: linear-gradient(135deg, #a8c4d8, #88b4c8); color: white;
+    border-color: transparent; box-shadow: 0 4px 16px rgba(168, 196, 216, 0.4);
+}
+
+.venue-list-section { display: none; margin-bottom: 30px; }
+.venue-list-section.active { display: block; animation: fadeIn 0.4s ease; }
+.venue-list-title { text-align: center; margin-bottom: 18px; }
+.venue-list-title .vl-name { font-size: 28px; font-weight: 700; color: #b690cb; letter-spacing: 2px; }
+.venue-list-title .vl-sub { font-size: 13px; color: #a090b0; margin-top: 4px; }
+.venue-row {
+    display: flex; align-items: center; gap: 14px;
+    padding: 14px 18px; margin-bottom: 8px;
+    background: rgba(255,255,255,0.85); border-radius: 14px;
+    border-left: 5px solid #d4a0be;
+    box-shadow: 0 2px 8px rgba(180, 160, 200, 0.08);
+    cursor: pointer; transition: all 0.2s ease;
+    text-decoration: none; color: inherit;
+}
+.venue-row:hover { transform: translateX(4px); box-shadow: 0 4px 14px rgba(180, 160, 200, 0.18); }
+.venue-row .vr-date {
+    min-width: 110px; font-weight: 700; color: #7a6090;
+    font-size: 14px; letter-spacing: 0.5px;
+}
+.venue-row .vr-date .vr-dow { font-size: 11px; margin-left: 4px; opacity: 0.7; }
+.venue-row .vr-title { flex: 1; font-weight: 600; color: #5a4a6a; font-size: 14px; line-height: 1.4; }
+.venue-row .vr-circle { font-size: 11px; color: #9080a0; min-width: 130px; text-align: right; }
+.venue-row.tomisato { border-left-color: #e8a8c0; }
+.venue-row.narita { border-left-color: #88b4d8; }
+.venue-row.kamagaya { border-left-color: #88c8a8; }
+.venue-row.chibant { border-left-color: #d8b888; }
+@media (max-width: 600px) {
+    .venue-row { flex-direction: column; align-items: flex-start; gap: 4px; }
+    .venue-row .vr-date { min-width: 0; }
+    .venue-row .vr-circle { text-align: left; min-width: 0; }
+}
+
 .calendar-title { text-align: center; margin-bottom: 18px; display: flex; flex-direction: column; align-items: center; }
 .cal-month-en {
     font-family: "Quicksand", sans-serif;
@@ -338,7 +388,9 @@ body {
     </div>
 
     <div class="month-nav" id="monthNav"></div>
+    <div class="venue-nav" id="venueNav"></div>
     <div id="calendars"></div>
+    <div id="venueLists"></div>
     <div class="footer"><p>&#x2727; &#x6210;&#x7530;&#x5BCC;&#x91CC;&#x5730;&#x57DF; &#x5B66;&#x3073;&#x306E;&#x30B5;&#x30FC;&#x30AF;&#x30EB;&#x6D3B;&#x52D5; 2026&#x5E74;&#x5EA6; &#x2727;</p></div>
 </div>
 
@@ -536,24 +588,32 @@ const monthNames = {4:'April',5:'May',6:'June',7:'July',8:'August',9:'September'
 const monthNamesJa = {4:'4\u6708',5:'5\u6708',6:'6\u6708',7:'7\u6708',8:'8\u6708',9:'9\u6708'};
 const dayLabels = ['\u6708','\u706B','\u6C34','\u6728','\u91D1','\u571F','\u65E5'];
 const months = [4,5,6,7,8,9];
+const venues = ['千葉NT', '富里', '鎌ヶ谷', '成田'];
+const venueRowClass = { '千葉NT':'chibant', '富里':'tomisato', '鎌ヶ谷':'kamagaya', '成田':'narita' };
 
-// 初期表示月: URLハッシュ #m=5 > 現在月(4-9月の範囲内) > 4月
-function getInitialMonth() {
-    const hashMatch = location.hash.match(/m=(\d+)/);
-    if (hashMatch) {
-        const m = parseInt(hashMatch[1], 10);
-        if (months.includes(m)) return m;
+// 初期表示: URLハッシュ #m=5 / #v=富里 > 現在月(4-9月の範囲内) > 4月
+function getInitialView() {
+    const venueHash = location.hash.match(/v=([^&]+)/);
+    if (venueHash) {
+        const v = decodeURIComponent(venueHash[1]);
+        if (venues.includes(v)) return { type:'venue', value:v };
+    }
+    const monthHash = location.hash.match(/m=(\d+)/);
+    if (monthHash) {
+        const m = parseInt(monthHash[1], 10);
+        if (months.includes(m)) return { type:'month', value:m };
     }
     const cur = new Date().getMonth() + 1;
-    if (months.includes(cur)) return cur;
-    return months[0];
+    if (months.includes(cur)) return { type:'month', value:cur };
+    return { type:'month', value:months[0] };
 }
-const initialMonth = getInitialMonth();
+const initialView = getInitialView();
+const initialMonth = initialView.type === 'month' ? initialView.value : months[0];
 
 const navEl = document.getElementById('monthNav');
 months.forEach((m, i) => {
     const btn = document.createElement('button');
-    btn.className = 'month-btn' + (m===initialMonth?' active':'');
+    btn.className = 'month-btn' + (initialView.type==='month' && m===initialView.value ? ' active' : '');
     btn.innerHTML = '<span class="month-en">' + monthNames[m] + '</span><span class="month-ja">' + monthNamesJa[m] + '</span>';
     btn.onclick = () => showMonth(m);
     navEl.appendChild(btn);
@@ -562,7 +622,7 @@ months.forEach((m, i) => {
 const calsEl = document.getElementById('calendars');
 months.forEach((month, i) => {
     const sec = document.createElement('div');
-    sec.className = 'calendar-section' + (month===initialMonth?' active':'');
+    sec.className = 'calendar-section' + (initialView.type==='month' && month===initialView.value ? ' active' : '');
     sec.id = 'month-' + month;
 
     const t = document.createElement('div');
@@ -638,20 +698,72 @@ months.forEach((month, i) => {
     calsEl.appendChild(sec);
 });
 
+// ===== 会場ナビ・会場別リスト生成 =====
+const venueNavEl = document.getElementById('venueNav');
+venues.forEach(v => {
+    const btn = document.createElement('button');
+    btn.className = 'venue-btn' + (initialView.type==='venue' && v===initialView.value ? ' active' : '');
+    btn.textContent = v;
+    btn.onclick = () => showVenue(v);
+    venueNavEl.appendChild(btn);
+});
+
+const venueListsEl = document.getElementById('venueLists');
+const dowJaShort = ['日','月','火','水','木','金','土'];
+venues.forEach(v => {
+    const sec = document.createElement('div');
+    sec.className = 'venue-list-section' + (initialView.type==='venue' && v===initialView.value ? ' active' : '');
+    sec.id = 'venue-' + v;
+
+    const ttl = document.createElement('div');
+    ttl.className = 'venue-list-title';
+    const venueEvents = events.filter(ev => ev.venue === v).sort((a,b) => (a.date+a.time).localeCompare(b.date+b.time));
+    ttl.innerHTML = '<div class="vl-name">' + v + '</div><div class="vl-sub">' + venueEvents.length + '件のイベント</div>';
+    sec.appendChild(ttl);
+
+    venueEvents.forEach(ev => {
+        const row = document.createElement('a');
+        row.href = '#';
+        row.className = 'venue-row ' + (venueRowClass[v] || '');
+        const d = new Date(ev.date);
+        const dow = dowJaShort[d.getDay()];
+        const dateStr = (d.getMonth()+1) + '/' + d.getDate();
+        const isSeminar = ev.type === 'seminar';
+        const circleLabel = isSeminar ? '⭐ セミナー' : (ev.circle || '');
+        row.innerHTML =
+            '<div class="vr-date">' + dateStr + '<span class="vr-dow">(' + dow + ')</span></div>' +
+            '<div class="vr-title">' + ev.title + '</div>' +
+            '<div class="vr-circle">' + circleLabel + '</div>';
+        row.onclick = (e) => { e.preventDefault(); openModal(ev); };
+        sec.appendChild(row);
+    });
+
+    venueListsEl.appendChild(sec);
+});
+
 function showMonth(m) {
-    document.querySelectorAll('.calendar-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.calendar-section, .venue-list-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.month-btn, .venue-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('month-'+m).classList.add('active');
     document.querySelectorAll('.month-btn')[months.indexOf(m)].classList.add('active');
     history.replaceState(null, '', '#m=' + m);
 }
 
+function showVenue(v) {
+    document.querySelectorAll('.calendar-section, .venue-list-section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.month-btn, .venue-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('venue-'+v).classList.add('active');
+    document.querySelectorAll('.venue-btn')[venues.indexOf(v)].classList.add('active');
+    history.replaceState(null, '', '#v=' + encodeURIComponent(v));
+}
+
+function applyView(view) {
+    if (view.type === 'venue') showVenue(view.value);
+    else showMonth(view.value);
+}
+
 window.addEventListener('hashchange', () => {
-    const m = getInitialMonth();
-    document.querySelectorAll('.calendar-section').forEach(s => s.classList.remove('active'));
-    document.querySelectorAll('.month-btn').forEach(b => b.classList.remove('active'));
-    document.getElementById('month-'+m).classList.add('active');
-    document.querySelectorAll('.month-btn')[months.indexOf(m)].classList.add('active');
+    applyView(getInitialView());
 });
 
 function openModal(ev) {
@@ -1300,6 +1412,8 @@ function rebuildAll() {
     });
     // 予約数を再読み込み
     if (typeof loadAllReserveCounts === 'function') loadAllReserveCounts();
+    // 現在の表示状態を復元（カレンダー再生成でactiveが4月固定になるため）
+    applyView(getInitialView());
 }
 
 function saveEdit() {
