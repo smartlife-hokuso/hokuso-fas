@@ -363,6 +363,31 @@ body {
     .day-number { font-size: 12px; }
     .hero h1 { font-size: 28px; }
 }
+
+@media (max-width: 600px) {
+    .day-cell { min-height: 60px; padding: 2px; }
+    .day-number { font-size: 10px; margin-bottom: 1px; padding-right: 3px; }
+    .event-chip {
+        font-size: 9px;
+        padding: 2px 4px;
+        line-height: 1.25;
+        align-items: center;
+        border-radius: 5px;
+        border-left-width: 2px;
+        margin-bottom: 2px;
+    }
+    .event-chip .chip-icon { font-size: 8px; }
+    .event-chip .chip-text {
+        flex: 1;
+        min-width: 0;
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .event-chip .chip-reserve { display: none; }
+    .day-header { font-size: 10px; padding: 6px 2px; letter-spacing: 1px; }
+}
 </style>
 </head>
 <body>
