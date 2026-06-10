@@ -625,9 +625,11 @@ function toggleConflictDetails() {
 
 // 連絡事項を取得して表示
 function loadNotices() {
-    var script = document.createElement("script");
-    script.src = GAS_URL + "?action=notices&callback=onNoticesLoaded&_=" + Date.now();
-    document.body.appendChild(script);
+    // 連絡事項はローカルの notices.json から読み込む（編集はこのファイルを直接書き換える）
+    fetch("notices.json?_=" + Date.now())
+        .then(function(r) { return r.json(); })
+        .then(function(data) { onNoticesLoaded(data); })
+        .catch(function() { onNoticesLoaded(null); });
 }
 
 function onNoticesLoaded(data) {
@@ -653,7 +655,7 @@ function onNoticesLoaded(data) {
 
 // ページ読み込み時に集計を取得
 loadTotals();
-loadConflicts();
+// loadConflicts(); // APO競合バナーを非表示化（再表示する場合はこの行の // を外す）
 loadNotices();
 </script>
 </body>
