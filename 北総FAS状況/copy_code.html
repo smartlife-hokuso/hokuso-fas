@@ -1140,12 +1140,62 @@ function writeLog(ss, name, values, updatedKeys, oldValues, source) {
     logSheet.appendRow([now, name, key, oldVal, values[key], src]);
   }
 }
+
+// ===== WIN状況の新項目をスプレッドシートのC列に追加する（1回だけ手動実行）=====
+// 個人ページ（planner-template / 各プランナーindex.html）の categories.win と項目名を一致させること。
+// 既にある項目はスキップするので、複数回実行しても重複しない（冪等）。
+function addWinItems() {
+  var NEW_ITEMS = [
+    &quot;WIN10確認済み世帯数&quot;,
+    &quot;FAS内WIN10世帯数&quot;,
+    &quot;うち確定WIN10&quot;,
+    &quot;うち潜在WIN10&quot;,
+    &quot;シートボックス&quot;,
+    &quot;WIN10からWIN11&quot;,
+    &quot;WIN10からMAC&quot;,
+    &quot;WIN10からIPAD&quot;
+  ];
+
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  var lastRow = ws.getLastRow();
+  var lastCol = ws.getLastColumn();
+  var numDataCols = lastCol - 3; // D列以降 = プランナー列
+
+  // 既存の項目名（C列）を取得
+  var existing = ws.getRange(1, 3, lastRow, 1).getValues();
+  var existingSet = {};
+  for (var i = 0; i &lt; existing.length; i++) {
+    var v = existing[i][0] ? existing[i][0].toString().trim() : &quot;&quot;;
+    if (v) existingSet[v] = true;
+  }
+
+  var added = [];
+  var row = lastRow + 1;
+  for (var n = 0; n &lt; NEW_ITEMS.length; n++) {
+    var item = NEW_ITEMS[n];
+    if (existingSet[item]) continue; // 既にあればスキップ
+    ws.getRange(row, 3).setValue(item); // C列に項目名
+    if (numDataCols &gt; 0) {              // D列以降を0で初期化
+      var zeros = [];
+      for (var z = 0; z &lt; numDataCols; z++) zeros.push(0);
+      ws.getRange(row, 4, 1, numDataCols).setValues([zeros]);
+    }
+    added.push(item);
+    existingSet[item] = true;
+    row++;
+  }
+
+  var msg = added.length + &quot;項目を追加しました: &quot; + (added.join(&quot;, &quot;) || &quot;（追加なし・全て既存）&quot;);
+  Logger.log(msg);
+  return msg;
+}
 </pre>
 <script>
 function copyCode() {
-  var code = document.getElementById('code').textContent;
+  var code = document.getElementById(&#x27;code&#x27;).textContent;
   navigator.clipboard.writeText(code).then(function() {
-    document.getElementById('msg').textContent = "コピーしました！ GASエディタに貼り付けてください";
+    document.getElementById(&#x27;msg&#x27;).textContent = "コピーしました！ GASエディタに貼り付けてください";
   });
 }
 </script>

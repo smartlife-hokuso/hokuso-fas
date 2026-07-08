@@ -1128,3 +1128,53 @@ function writeLog(ss, name, values, updatedKeys, oldValues, source) {
     logSheet.appendRow([now, name, key, oldVal, values[key], src]);
   }
 }
+
+// ===== WIN状況の新項目をスプレッドシートのC列に追加する（1回だけ手動実行）=====
+// 個人ページ（planner-template / 各プランナーindex.html）の categories.win と項目名を一致させること。
+// 既にある項目はスキップするので、複数回実行しても重複しない（冪等）。
+function addWinItems() {
+  var NEW_ITEMS = [
+    "WIN10確認済み世帯数",
+    "FAS内WIN10世帯数",
+    "うち確定WIN10",
+    "うち潜在WIN10",
+    "シートボックス",
+    "WIN10からWIN11",
+    "WIN10からMAC",
+    "WIN10からIPAD"
+  ];
+
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  var lastRow = ws.getLastRow();
+  var lastCol = ws.getLastColumn();
+  var numDataCols = lastCol - 3; // D列以降 = プランナー列
+
+  // 既存の項目名（C列）を取得
+  var existing = ws.getRange(1, 3, lastRow, 1).getValues();
+  var existingSet = {};
+  for (var i = 0; i < existing.length; i++) {
+    var v = existing[i][0] ? existing[i][0].toString().trim() : "";
+    if (v) existingSet[v] = true;
+  }
+
+  var added = [];
+  var row = lastRow + 1;
+  for (var n = 0; n < NEW_ITEMS.length; n++) {
+    var item = NEW_ITEMS[n];
+    if (existingSet[item]) continue; // 既にあればスキップ
+    ws.getRange(row, 3).setValue(item); // C列に項目名
+    if (numDataCols > 0) {              // D列以降を0で初期化
+      var zeros = [];
+      for (var z = 0; z < numDataCols; z++) zeros.push(0);
+      ws.getRange(row, 4, 1, numDataCols).setValues([zeros]);
+    }
+    added.push(item);
+    existingSet[item] = true;
+    row++;
+  }
+
+  var msg = added.length + "項目を追加しました: " + (added.join(", ") || "（追加なし・全て既存）");
+  Logger.log(msg);
+  return msg;
+}

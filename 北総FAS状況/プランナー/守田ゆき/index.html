@@ -122,6 +122,19 @@ body {
     text-align: right; font-family: "Zen Maru Gothic", sans-serif;
     outline: none;
 }
+/* WIN状況などの見出し行（数値入力なし・全幅） */
+.data-grid .subhead {
+    grid-column: 1 / -1;
+    padding: 8px 4px 2px;
+    font-size: 12px; font-weight: 700; color: #4a6090;
+    border-bottom: 1px dashed rgba(74, 124, 201, 0.3);
+}
+/* 「うち～」などのサブ項目（インデント表示） */
+.data-item.indent { margin-left: 16px; background: rgba(240, 244, 255, 0.4); }
+/* ラベル下の補足注記 */
+.data-item .label .note {
+    display: block; font-size: 10px; color: #9aa2b8; font-weight: 400; margin-top: 2px;
+}
 
 .action-bar {
     display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
@@ -369,7 +382,17 @@ var editing = false;
 // スプレッドシートの項目→カテゴリ分け
 var categories = {
     fas: ["担当軒数","担当人数","内一般聴講生軒数","内一般聴講生人数","内専門聴講生軒数","内専門聴講生人数","内ビジネス会員軒数","内ビジネス会員人数","内DX会員軒数","内DX会員人数","内個人事業主","内コミュニティ関係者","内教育関連従事者","内PTA","引継入","引継出","担当増減（先月比）","総デバイス数","他DLPのDX担当軒数"],
-    win: ["WIN10使用中（プレ）","11切替済","不要","未確認"],
+    win: [
+        { key: "WIN10確認済み世帯数", note: "担当FAS数・家族含む" },
+        { key: "FAS内WIN10世帯数", note: "分母＝担当FAS数・家族含む" },
+        { key: "うち確定WIN10", indent: true },
+        { key: "うち潜在WIN10", indent: true },
+        { key: "シートボックス", indent: true },
+        { header: "シートボックス予約状況" },
+        { key: "WIN10からWIN11", indent: true },
+        { key: "WIN10からMAC", indent: true },
+        { key: "WIN10からIPAD", indent: true }
+    ],
     asset: ["VC","内AO生","内専門生","内ビジネス","内DXエントリー","内DXレギュラー","CEX","従業員オプション","WEB","GoogleWokSpace","GenSpark","光/SIM/モバイルルータ","我が社"],
     event: ["イベント来館","イベント参加確定","イベント参加予定"],
     appoint: ["アポイントコール数","アポイントラウンド数","アポイント（確定）軒数","アポイント（確定）人数"],
@@ -576,15 +599,28 @@ function renderCategory(gridId, items) {
     var grid = document.getElementById(gridId);
     grid.innerHTML = "";
     for (var i = 0; i < items.length; i++) {
-        var key = items[i];
+        // 文字列は { key: 文字列 } として扱う（従来のカテゴリと互換）
+        var it = (typeof items[i] === "string") ? { key: items[i] } : items[i];
+
+        // 見出し行（数値入力なし・全幅）
+        if (it.header) {
+            var h = document.createElement("div");
+            h.className = "subhead";
+            h.textContent = it.header;
+            grid.appendChild(h);
+            continue;
+        }
+
+        var key = it.key;
         var val = sheetData[key] !== undefined ? sheetData[key] : 0;
         if (typeof val === "string") {
             val = val.replace(/[０-９]/g, function(s) { return String.fromCharCode(s.charCodeAt(0) - 0xFEE0); });
             val = parseInt(val) || 0;
         }
+        var labelHtml = (it.label || key) + (it.note ? '<span class="note">' + it.note + '</span>' : "");
         var item = document.createElement("div");
-        item.className = "data-item";
-        item.innerHTML = '<span class="label">' + key + '</span>' +
+        item.className = "data-item" + (it.indent ? " indent" : "");
+        item.innerHTML = '<span class="label">' + labelHtml + '</span>' +
             '<span class="value ' + (val === 0 ? "zero" : "") + '">' + val + '</span>' +
             '<input class="edit-input" type="number" value="' + val + '" data-key="' + key + '">';
         grid.appendChild(item);
