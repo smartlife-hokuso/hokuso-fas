@@ -30,7 +30,7 @@ var SEATBOX_PERIODS = [1, 2];
 var SEATBOX_AUTO_LABELS = ["スタンバイ", "受注", "完了"];
 function seatboxItemName(period, label) { return "第" + period + "期シートボックス" + label; }
 
-// apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（23名、石井（俊）は除外）
+// apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（22名、石井（俊）・高橋は除外）
 var APO_TO_FAS_NAME = {
   "並木": "並木 孝博",
   "中渡瀬": "中渡瀬 理恵",
@@ -52,7 +52,6 @@ var APO_TO_FAS_NAME = {
   "須田": "須田 歩",
   "飯田（敬）": "飯田 敬介",
   "飯田（未）": "飯田 未来",
-  "高橋": "高橋 昌則",
   "髙木": "髙木 柚伽",
   "齋藤": "齋藤 和樹"
 };
@@ -1713,4 +1712,52 @@ function removeAutoSeatboxSync() {
     }
   }
   return { status: "ok", removed: removed, message: removed + " 個のトリガーを削除しました" };
+}
+
+// ===== 2026-10-31 メンバー変更（GASエディタで1回だけ実行）=====
+// 鎌ケ谷（地域変更）10名・高橋昌則・齋藤えま・烏蘭其其格・山野井尋紀の列を削除し、三木星空を富里インターに追加。
+// 実行前に現シートを「バックアップ_20261031メンバー変更」として丸ごと複製する。2回目以降は何もしない。
+function applyMemberChange20261031() {
+  var REMOVE = ["片桐 啓介","入江 渓太","新田 祐二","柴 由香里","玉井 なおこ","関根 瞳","井戸 昭人","金 鍾進","濱田 耕一","工藤 李紀",
+                "高橋 昌則","齋藤 えま","烏蘭 其其格","山野井 尋紀"];
+  var ADD = { name: "三木 星空", region: "SL富里インター" };
+  var BACKUP = "バックアップ_20261031メンバー変更";
+
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  if (ss.getSheetByName(BACKUP)) return "実行済みです（" + BACKUP + " があります）";
+  var backup = ws.copyTo(ss);
+  backup.setName(BACKUP);
+  ss.setActiveSheet(backup);
+  ss.moveActiveSheet(ss.getNumSheets());
+
+  var removeSet = {};
+  for (var i = 0; i < REMOVE.length; i++) removeSet[REMOVE[i].replace(/\s/g, "")] = true;
+  var lastCol = ws.getLastColumn();
+  var top = ws.getRange(2, 1, 2, lastCol).getValues(); // 2行目=拠点, 3行目=名前
+  var removed = [];
+  for (var c = lastCol - 1; c >= 3; c--) { // 右から消す（列番号ずれ防止）
+    var nm = top[1][c] ? top[1][c].toString().replace(/\s/g, "") : "";
+    if (removeSet[nm]) { ws.deleteColumn(c + 1); removed.push(top[1][c]); }
+  }
+
+  // 三木星空: 富里インターの最後の列の右に追加
+  top = ws.getRange(2, 1, 2, ws.getLastColumn()).getValues();
+  var exists = false, after = ws.getLastColumn();
+  for (var c2 = 3; c2 < top[1].length; c2++) {
+    if (top[1][c2] && top[1][c2].toString().replace(/\s/g, "") === ADD.name.replace(/\s/g, "")) exists = true;
+    if (top[0][c2] && top[0][c2].toString().trim() === ADD.region) after = c2 + 1;
+  }
+  if (!exists) {
+    ws.insertColumnAfter(after);
+    ws.getRange(2, after + 1).setValue(ADD.region);
+    ws.getRange(3, after + 1).setValue(ADD.name);
+    var rows = ws.getLastRow() - 3;
+    var zeros = [];
+    for (var z = 0; z < rows; z++) zeros.push([0]);
+    if (rows > 0) ws.getRange(4, after + 1, rows, 1).setValues(zeros);
+  }
+  var msg = "削除" + removed.length + "名: " + removed.join(", ") + " / 追加: " + (exists ? "（既に存在）" : ADD.name);
+  Logger.log(msg);
+  return msg;
 }

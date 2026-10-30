@@ -1,95 +1,5 @@
 [
   {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "片桐 啓介",
-    "folder": "片桐啓介",
-    "performer": "NX",
-    "shikaku": 1,
-    "emp_id": 101101
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "入江 渓太",
-    "folder": "入江渓太",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 132861
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "新田 祐二",
-    "folder": "新田祐二",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 110146
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "柴 由香里",
-    "folder": "柴由香里",
-    "performer": "NX",
-    "shikaku": 1,
-    "emp_id": 129072
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "玉井 なおこ",
-    "folder": "玉井なおこ",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 111345
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "関根 瞳",
-    "folder": "関根瞳",
-    "performer": "NX/FX/VC",
-    "shikaku": 1,
-    "emp_id": 101874
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "井戸 昭人",
-    "folder": "井戸昭人",
-    "performer": "NX",
-    "shikaku": 0,
-    "emp_id": 100999
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "金 鍾進",
-    "folder": "金鍾進",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 116808
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "濱田 耕一",
-    "folder": "濱田耕一",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 108365
-  },
-  {
-    "cd": 1123,
-    "base": "スマートライフ鎌ケ谷店",
-    "name": "工藤 李紀",
-    "folder": "工藤李紀",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 134003
-  },
-  {
     "cd": 1126,
     "base": "スマートライフ富里インター店",
     "name": "髙木 柚伽",
@@ -97,15 +7,6 @@
     "performer": "NX/VC",
     "shikaku": 0,
     "emp_id": 101599
-  },
-  {
-    "cd": 1126,
-    "base": "スマートライフ富里インター店",
-    "name": "高橋 昌則",
-    "folder": "高橋昌則",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 100216
   },
   {
     "cd": 1126,
@@ -297,6 +198,15 @@
     "emp_id": 116811
   },
   {
+    "cd": 1126,
+    "base": "スマートライフ富里インター店",
+    "name": "三木 星空",
+    "folder": "三木星空",
+    "performer": "",
+    "shikaku": 0,
+    "emp_id": 133824
+  },
+  {
     "cd": 1301,
     "base": "成田くらしのデジタル館",
     "name": "武田 翔人",
@@ -304,15 +214,6 @@
     "performer": "",
     "shikaku": 1,
     "emp_id": 101478
-  },
-  {
-    "cd": 1511,
-    "base": "DCL千葉ﾆｭｰﾀｳﾝ店内店",
-    "name": "齋藤 えま",
-    "folder": "齋藤えま",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 116579
   },
   {
     "cd": 1511,
@@ -358,15 +259,6 @@
     "performer": "",
     "shikaku": 1,
     "emp_id": 131810
-  },
-  {
-    "cd": 1511,
-    "base": "DCL千葉ﾆｭｰﾀｳﾝ店内店",
-    "name": "烏蘭 其其格",
-    "folder": "烏蘭其其格",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 115159
   },
   {
     "cd": 1511,
@@ -502,15 +394,6 @@
     "performer": "NX",
     "shikaku": 1,
     "emp_id": 100929
-  },
-  {
-    "cd": 1803,
-    "base": "スマートライフ成田店",
-    "name": "山野井 尋紀",
-    "folder": "山野井尋紀",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 132876
   },
   {
     "cd": 1803,

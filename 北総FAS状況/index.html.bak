@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>北総FAS プランナー実績管理</title>
+<script>
+// オフラインでも動くようにフォントを非同期読み込み
+var link = document.createElement('link');
+link.rel = 'stylesheet';
+link.href = 'https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Quicksand:wght@400;500;600;700&display=swap';
+document.head.appendChild(link);
+</script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+    font-family: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif;
+    background: linear-gradient(180deg, #f0f4ff 0%, #e8edf8 30%, #f3eef6 70%, #f0f4ff 100%);
+    background-attachment: fixed;
+    color: #3a4060; line-height: 1.6; min-height: 100vh;
+}
+.container { max-width: 1400px; margin: 0 auto; padding: 25px; }
+
+.hero {
+    background: linear-gradient(135deg, #4a7cc9 0%, #6b5ea6 40%, #8b6eae 100%);
+    color: white; padding: 38px 30px 30px; border-radius: 24px;
+    margin-bottom: 26px; text-align: center;
+    box-shadow: 0 8px 32px rgba(74, 124, 201, 0.3);
+    position: relative; overflow: hidden;
+}
+.hero::before {
+    content: ''; position: absolute;
+    top: -50%; left: -50%; width: 200%; height: 200%;
+    background: radial-gradient(circle at 30% 40%, rgba(255,255,255,0.12) 0%, transparent 50%),
+                radial-gradient(circle at 70% 60%, rgba(255,255,255,0.08) 0%, transparent 40%);
+    pointer-events: none;
+}
+.hero h1 {
+    font-family: "Quicksand", "Zen Maru Gothic", sans-serif;
+    font-size: 34px; font-weight: 700; margin-bottom: 6px;
+    letter-spacing: 2px; text-shadow: 0 2px 8px rgba(0,0,0,0.1); position: relative;
+}
+.hero p { font-size: 15px; opacity: 0.9; letter-spacing: 1px; position: relative; }
+
+/* 集計アイコン */
+.icon-stats {
+    display: flex; justify-content: center; gap: 16px; margin-bottom: 26px; flex-wrap: wrap;
+}
+.icon-stat {
+    display: flex; flex-direction: column; align-items: center;
+    background: rgba(255,255,255,0.92); backdrop-filter: blur(12px);
+    border-radius: 20px; padding: 16px 20px 12px; min-width: 110px;
+    box-shadow: 0 4px 16px rgba(100, 120, 180, 0.1);
+    border: 1px solid rgba(180, 190, 220, 0.25);
+    transition: transform 0.2s;
+}
+.icon-stat:hover { transform: translateY(-2px); }
+.icon-stat .ic {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08); color: white;
+}
+.icon-stat .ic svg { width: 24px; height: 24px; }
+.icon-stat .num {
+    font-family: "Quicksand", sans-serif;
+    font-size: 26px; font-weight: 700; color: #3a4060; line-height: 1;
+}
+.icon-stat .lbl { font-size: 11px; color: #8a90a8; margin-top: 3px; }
+.ic-people { background: linear-gradient(135deg, #4a7cc9, #6b9ee0); }
+.ic-bases { background: linear-gradient(135deg, #6b5ea6, #9b8ec4); }
+.ic-cust { background: linear-gradient(135deg, #4a9c7c, #6bc0a0); }
+.ic-dx { background: linear-gradient(135deg, #c97a4a, #e0a56b); }
+
+/* 検索 */
+.top-row { display: flex; gap: 14px; margin-bottom: 24px; align-items: stretch; }
+.top-row .search-area { flex: 1 1 50%; margin-bottom: 0; min-width: 0; }
+.top-row .notice-area { flex: 1 1 50%; min-width: 0; background: linear-gradient(135deg, #f3eef6, #ede5f2); border: 1px solid rgba(180,160,200,0.35); border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; box-shadow: 0 2px 8px rgba(120,100,160,0.06); }
+.notice-area .notice-title { font-size: 13px; font-weight: 600; color: #6b5ea6; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.notice-area .notice-list { flex: 1; overflow-y: auto; max-height: 90px; font-size: 12px; line-height: 1.55; color: #4a4060; }
+.notice-area .notice-item { padding: 3px 0; border-bottom: 1px dashed rgba(180,160,200,0.3); }
+.notice-area .notice-item:last-child { border-bottom: none; }
+.notice-area .notice-date { color: #8b7ea3; font-size: 10px; font-weight: 600; margin-right: 6px; }
+.notice-area .notice-empty { font-size: 11px; color: #a09bb0; text-align: center; padding: 14px 0; }
+@media (max-width: 720px) {
+  .top-row { flex-direction: column; gap: 10px; }
+  .top-row .search-area, .top-row .notice-area { flex: none; width: 100%; }
+}
+.search-area { margin-bottom: 24px; text-align: center; }
+.search-area input {
+    width: 100%; max-width: 460px; padding: 11px 22px;
+    border: 2px solid rgba(180, 190, 220, 0.35);
+    border-radius: 30px; font-size: 15px;
+    font-family: "Zen Maru Gothic", sans-serif;
+    background: rgba(255,255,255,0.9); outline: none;
+    transition: all 0.3s; color: #3a4060;
+}
+.search-area input:focus { border-color: #4a7cc9; box-shadow: 0 0 0 3px rgba(74,124,201,0.12); }
+.search-area input::placeholder { color: #b0b8cc; }
+
+/* 地域セクション */
+.region { margin-bottom: 30px; }
+.region + .region { border-top: 1px solid rgba(180,190,220,0.18); padding-top: 24px; }
+.region-hdr {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 14px;
+}
+.region-badge {
+    width: 44px; height: 44px; border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 700; color: white; flex-shrink: 0;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.12);
+}
+.region-name { font-size: 18px; font-weight: 700; color: #3a4060; }
+.region-meta { font-size: 12px; color: #8a90a8; }
+.region-cnt {
+    margin-left: auto;
+    background: rgba(255,255,255,0.8); border-radius: 20px;
+    padding: 4px 14px; font-size: 13px; font-weight: 600; color: #4a6090;
+    border: 1px solid rgba(180,190,220,0.3);
+}
+
+/* プランナーアイコン */
+.people-row { display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0; }
+
+.p-icon {
+    display: flex; flex-direction: column; align-items: center;
+    width: 96px; padding: 10px 4px 8px;
+    text-decoration: none; color: inherit;
+    border-radius: 16px; cursor: pointer;
+    transition: all 0.25s ease; position: relative;
+}
+.p-icon:hover {
+    background: rgba(255,255,255,0.85);
+    transform: translateY(-4px);
+    box-shadow: 0 8px 24px rgba(74,124,201,0.15);
+}
+.p-icon .av {
+    width: 52px; height: 52px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 700; color: white;
+    margin-bottom: 5px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+    transition: transform 0.2s; position: relative;
+}
+.p-icon:hover .av { transform: scale(1.1); }
+.p-icon .perfs {
+    position: absolute; bottom: -4px; left: 50%;
+    transform: translateX(-50%);
+    display: flex; gap: 2px;
+}
+.p-icon .perf {
+    min-width: 18px; height: 18px; border-radius: 9px;
+    border: 2px solid white;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 7px; font-weight: 700;
+    padding: 0 3px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+}
+.perf-NX { background: linear-gradient(135deg, #4a9c7c, #6bc0a0); color: white; }
+.perf-FX { background: linear-gradient(135deg, #c97a4a, #e0a56b); color: white; }
+.perf-VC { background: linear-gradient(135deg, #4a7cc9, #6b9ee0); color: white; }
+.perf-DX { background: linear-gradient(135deg, #9a5ea6, #c08ec4); color: white; }
+.perf-YX { background: linear-gradient(135deg, #c94a6e, #e06b8e); color: white; }
+.perf-AO { background: linear-gradient(135deg, #ffd54f, #ffb300); color: #5a4000; }
+.p-icon .nm {
+    font-size: 12px; font-weight: 700; text-align: center;
+    line-height: 1.2; color: #3a4060; margin-bottom: 3px;
+}
+/* 数値ミニ表示 */
+.p-icon .nums {
+    display: flex; gap: 3px; justify-content: center; flex-wrap: wrap;
+}
+.p-icon .nums span {
+    font-size: 9px; padding: 1px 5px;
+    border-radius: 6px; line-height: 1.3;
+    font-weight: 600;
+}
+.p-icon .n-k { background: rgba(74,124,201,0.12); color: #4a7cc9; }
+.p-icon .n-p { background: rgba(74,156,124,0.12); color: #3a8a6a; }
+.p-icon .n-a { background: rgba(201,150,50,0.12); color: #9a7a20; }
+.p-icon .n-d { background: rgba(156,94,166,0.12); color: #8a4ea0; }
+
+/* ツールチップ */
+.p-icon .tip {
+    display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+    transform: translateX(-50%);
+    background: #3a4060; color: white; font-size: 11px;
+    padding: 6px 12px; border-radius: 8px; white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.2); z-index: 10;
+    pointer-events: none;
+}
+.p-icon .tip::after {
+    content: ''; position: absolute; top: 100%; left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent; border-top-color: #3a4060;
+}
+.p-icon:hover .tip { display: block; }
+
+/* 拠点カラー */
+.rc0 .region-badge, .rc0 .av { background: linear-gradient(135deg, #4a7cc9, #6b9ee0); }
+.rc1 .region-badge, .rc1 .av { background: linear-gradient(135deg, #e06b8e, #f09aae); }
+.rc2 .region-badge, .rc2 .av { background: linear-gradient(135deg, #c97a4a, #e0a56b); }
+.rc3 .region-badge, .rc3 .av { background: linear-gradient(135deg, #4a9c7c, #6bc0a0); }
+.rc4 .region-badge, .rc4 .av { background: linear-gradient(135deg, #9a5ea6, #c08ec4); }
+.rc5 .region-badge, .rc5 .av { background: linear-gradient(135deg, #5a8abf, #7cb8e0); }
+.rc6 .region-badge, .rc6 .av { background: linear-gradient(135deg, #7a8a4a, #a0b06b); }
+.rc7 .region-badge, .rc7 .av { background: linear-gradient(135deg, #6b5ea6, #9b8ec4); }
+
+.hidden { display: none !important; }
+
+@media (max-width: 768px) {
+    .container { padding: 14px; }
+    .hero { padding: 24px 16px 20px; border-radius: 18px; margin-bottom: 18px; }
+    .hero h1 { font-size: 22px; letter-spacing: 1px; }
+    .hero p { font-size: 13px; }
+    .icon-stats { gap: 8px; }
+    .icon-stat { min-width: 60px; padding: 10px 8px 8px; border-radius: 14px; }
+    .icon-stat .ic { width: 38px; height: 38px; }
+    .icon-stat .ic svg { width: 18px; height: 18px; }
+    .icon-stat .num { font-size: 18px; }
+    .icon-stat .lbl { font-size: 10px; }
+    .people-row { gap: 4px; }
+    .p-icon { width: 64px; padding: 6px 2px 5px; border-radius: 12px; }
+    .p-icon .av { width: 38px; height: 38px; font-size: 16px; margin-bottom: 4px; }
+    .p-icon .perf { min-width: 15px; height: 15px; border-radius: 8px; font-size: 6px; padding: 0 2px; border-width: 1.5px; }
+    .p-icon .perfs { gap: 1px; bottom: -3px; }
+    .p-icon .nm { font-size: 10px; margin-bottom: 2px; }
+    .p-icon .nums { gap: 2px; }
+    .p-icon .nums span { font-size: 8px; padding: 1px 4px; border-radius: 5px; }
+    .region { margin-bottom: 20px; }
+    .region + .region { padding-top: 16px; }
+    .region-hdr { padding: 0; gap: 10px; margin-bottom: 10px; }
+    .region-name { font-size: 14px; }
+    .region-meta { font-size: 11px; }
+    .region-badge { width: 36px; height: 36px; font-size: 14px; border-radius: 11px; }
+    .region-cnt { font-size: 11px; padding: 3px 10px; }
+    .search-area input { font-size: 16px; padding: 10px 18px; }
+}
+@media (max-width: 480px) {
+    .container { padding: 8px; }
+    .hero { padding: 18px 14px 14px; margin-bottom: 12px; }
+    .hero h1 { font-size: 19px; }
+    .hero p { font-size: 12px; }
+    .icon-stats { gap: 5px; margin-bottom: 16px; }
+    .icon-stat { min-width: 0; flex: 1 1 calc(20% - 5px); padding: 8px 4px 6px; border-radius: 12px; }
+    .icon-stat .ic { width: 32px; height: 32px; margin-bottom: 5px; }
+    .icon-stat .ic svg { width: 16px; height: 16px; }
+    .icon-stat .num { font-size: 15px; }
+    .icon-stat .lbl { font-size: 9px; }
+    .people-row { gap: 3px; }
+    .p-icon { width: 56px; padding: 5px 1px 4px; }
+    .p-icon .av { width: 34px; height: 34px; font-size: 14px; }
+    .p-icon .perf { min-width: 13px; height: 13px; font-size: 5.5px; padding: 0 2px; border-width: 1px; }
+    .p-icon .nm { font-size: 9.5px; line-height: 1.15; margin-bottom: 1px; }
+    .p-icon .nums { gap: 1px; }
+    .p-icon .nums span { font-size: 7.5px; padding: 0 3px; }
+}
+@media (max-width: 360px) {
+    .p-icon { width: 50px; padding: 4px 1px 3px; }
+    .p-icon .av { width: 30px; height: 30px; font-size: 12px; }
+    .p-icon .nm { font-size: 9px; }
+    .icon-stat { flex: 1 1 calc(33.333% - 5px); }
+}
+</style>
+</head>
+<body>
+<div class="container">
+
+    <div class="hero">
+        <h1>北総FAS プランナー実績管理</h1>
+        <p>プランナー戦略状況ダッシュボード 2026年4月〜</p>
+    </div>
+
+    <div class="icon-stats">
+        <div class="icon-stat">
+            <div class="ic ic-people"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+            <div class="num" id="sPeople">58</div>
+            <div class="lbl">プランナー</div>
+        </div>
+        <div class="icon-stat">
+            <div class="ic ic-bases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+            <div class="num">8</div>
+            <div class="lbl">拠点</div>
+        </div>
+        <div class="icon-stat">
+            <div class="ic ic-cust"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg></div>
+            <div class="num" id="sCust">-</div>
+            <div class="lbl">総担当軒数</div>
+        </div>
+        <div class="icon-stat">
+            <div class="ic" style="background: linear-gradient(135deg, #e07c4a, #e0a56b);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+            <div class="num" id="sAO">-</div>
+            <div class="lbl">総AO生数</div>
+        </div>
+        <div class="icon-stat">
+            <div class="ic ic-dx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+            <div class="num" id="sDX">-</div>
+            <div class="lbl">総DX数</div>
+        </div>
+        <div class="icon-stat" id="assetRanking" style="display:none; padding:12px 14px;">
+            <div class="lbl" style="margin-bottom:6px; font-weight:600; color:#6b5ea6;">累計アセット TOP10</div>
+            <div id="rankList" style="display:flex; gap:0 20px;"></div>
+        </div>
+    </div>
+
+    <div id="conflictBanner" style="display:none; background:linear-gradient(135deg, #fff5e6, #fff0d6); border:1px solid #f5c89c; border-radius:14px; padding:14px 18px; margin-bottom:14px; cursor:pointer;" onclick="toggleConflictDetails()">
+        <div style="display:flex; align-items:center; gap:10px; color:#a0691f; font-weight:600;">
+            <span style="font-size:20px;">⚠️</span>
+            <span id="conflictHeader">入力競合あり</span>
+            <span style="margin-left:auto; font-size:12px;" id="conflictToggleArrow">▶ 詳細</span>
+        </div>
+        <div id="conflictDetails" style="display:none; margin-top:10px; padding-top:10px; border-top:1px dashed #e0b888; font-size:13px; color:#7a4f15;"></div>
+    </div>
+
+    <div class="top-row">
+        <div class="search-area">
+            <input type="text" id="q" placeholder="プランナー名で検索..." oninput="filter()">
+            <div style="margin-top: 10px;">
+                <a href="log.html" style="color: #6b5ea6; font-size: 13px; text-decoration: none; opacity: 0.7;">変更ログを確認</a>
+            </div>
+        </div>
+        <div class="notice-area">
+            <div class="notice-title">📢 連絡事項</div>
+            <div class="notice-list" id="noticeList"><div class="notice-empty">読み込み中...</div></div>
+        </div>
+    </div>
+
+    <div id="regions">
+
+    <!-- SL鎌ケ谷 -->
+    <div class="region rc0">
+        <div class="region-hdr">
+            <div class="region-badge">鎌</div>
+            <div><div class="region-name">SL鎌ケ谷</div><div class="region-meta">CD: 1123</div></div>
+            <div class="region-cnt">10名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/片桐啓介/index.html" class="p-icon" data-n="片桐 啓介"><div class="tip">片桐 啓介 [NX]</div><div class="av">片<span class="perfs"><span class="perf perf-NX">NX</span></span></div><div class="nm">片桐 啓介</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/入江渓太/index.html" class="p-icon" data-n="入江 渓太"><div class="tip">入江 渓太</div><div class="av">入</div><div class="nm">入江 渓太</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/新田祐二/index.html" class="p-icon" data-n="新田 祐二"><div class="tip">新田 祐二</div><div class="av">新</div><div class="nm">新田 祐二</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/柴由香里/index.html" class="p-icon" data-n="柴 由香里"><div class="tip">柴 由香里 [NX]</div><div class="av">柴<span class="perfs"><span class="perf perf-NX">NX</span></span></div><div class="nm">柴 由香里</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/玉井なおこ/index.html" class="p-icon" data-n="玉井 なおこ"><div class="tip">玉井 なおこ</div><div class="av">玉</div><div class="nm">玉井 なおこ</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/関根瞳/index.html" class="p-icon" data-n="関根 瞳"><div class="tip">関根 瞳 [NX/FX/VC]</div><div class="av">関<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-FX">FX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">関根 瞳</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/井戸昭人/index.html" class="p-icon" data-n="井戸 昭人"><div class="tip">井戸 昭人 [NX]</div><div class="av">井<span class="perfs"><span class="perf perf-NX">NX</span></span></div><div class="nm">井戸 昭人</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/金鍾進/index.html" class="p-icon" data-n="金 鍾進"><div class="tip">金 鍾進</div><div class="av">金</div><div class="nm">金 鍾進</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/濱田耕一/index.html" class="p-icon" data-n="濱田 耕一"><div class="tip">濱田 耕一</div><div class="av">濱</div><div class="nm">濱田 耕一</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/工藤李紀/index.html" class="p-icon" data-n="工藤 李紀"><div class="tip">工藤 李紀</div><div class="av">工</div><div class="nm">工藤 李紀</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- SL富里インター -->
+    <div class="region rc1">
+        <div class="region-hdr">
+            <div class="region-badge">富</div>
+            <div><div class="region-name">SL富里インター</div><div class="region-meta">CD: 1126</div></div>
+            <div class="region-cnt">22名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/髙木柚伽/index.html" class="p-icon" data-n="髙木 柚伽"><div class="tip">髙木 柚伽 [NX/VC]</div><div class="av">髙<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">髙木 柚伽</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/高橋昌則/index.html" class="p-icon" data-n="高橋 昌則"><div class="tip">高橋 昌則</div><div class="av">高</div><div class="nm">高橋 昌則</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/齋藤和樹/index.html" class="p-icon" data-n="齋藤 和樹"><div class="tip">齋藤 和樹 [NX/FX/VC]</div><div class="av">齋<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-FX">FX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">齋藤 和樹</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/鈴木啓人/index.html" class="p-icon" data-n="鈴木 啓人"><div class="tip">鈴木 啓人</div><div class="av">鈴</div><div class="nm">鈴木 啓人</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/並木孝博/index.html" class="p-icon" data-n="並木 孝博"><div class="tip">並木 孝博</div><div class="av">並</div><div class="nm">並木 孝博</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/福田花梨/index.html" class="p-icon" data-n="福田 花梨"><div class="tip">福田 花梨</div><div class="av">福</div><div class="nm">福田 花梨</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/渡会佳祐/index.html" class="p-icon" data-n="渡会 佳祐"><div class="tip">渡会 佳祐 [DX/VC]</div><div class="av">渡<span class="perfs"><span class="perf perf-DX">DX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">渡会 佳祐</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/田中乃凪/index.html" class="p-icon" data-n="田中 乃凪"><div class="tip">田中 乃凪</div><div class="av">田</div><div class="nm">田中 乃凪</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/田中大也/index.html" class="p-icon" data-n="田中 大也"><div class="tip">田中 大也 [VC/AO]</div><div class="av">田<span class="perfs"><span class="perf perf-VC">VC</span><span class="perf perf-AO">AO</span></span></div><div class="nm">田中 大也</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/飯田未来/index.html" class="p-icon" data-n="飯田 未来"><div class="tip">飯田 未来 [NX/VC]</div><div class="av">飯<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">飯田 未来</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/中渡瀬理恵/index.html" class="p-icon" data-n="中渡瀬 理恵"><div class="tip">中渡瀬 理恵</div><div class="av">中</div><div class="nm">中渡瀬 理恵</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/須田歩/index.html" class="p-icon" data-n="須田 歩"><div class="tip">須田 歩</div><div class="av">須</div><div class="nm">須田 歩</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/植野友介/index.html" class="p-icon" data-n="植野 友介"><div class="tip">植野 友介</div><div class="av">植</div><div class="nm">植野 友介</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/初見健太朗/index.html" class="p-icon" data-n="初見 健太朗"><div class="tip">初見 健太朗</div><div class="av">初</div><div class="nm">初見 健太朗</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/渋谷航大/index.html" class="p-icon" data-n="渋谷 航大"><div class="tip">渋谷 航大</div><div class="av">渋</div><div class="nm">渋谷 航大</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/守田ゆき/index.html" class="p-icon" data-n="守田 ゆき"><div class="tip">守田 ゆき [FX/NX/VC]</div><div class="av">守<span class="perfs"><span class="perf perf-FX">FX</span><span class="perf perf-NX">NX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">守田 ゆき</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/後藤航太/index.html" class="p-icon" data-n="後藤 航太"><div class="tip">後藤 航太 [NX/VC]</div><div class="av">後<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">後藤 航太</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/外山由佳/index.html" class="p-icon" data-n="外山 由佳"><div class="tip">外山 由佳 [NX/FX/YX/VC]</div><div class="av">外<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-FX">FX</span><span class="perf perf-YX">YX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">外山 由佳</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/佐藤凌太/index.html" class="p-icon" data-n="佐藤 凌太"><div class="tip">佐藤 凌太 [NX/VC]</div><div class="av">佐<span class="perfs"><span class="perf perf-NX">NX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">佐藤 凌太</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/岡山純一/index.html" class="p-icon" data-n="岡山 純一"><div class="tip">岡山 純一</div><div class="av">岡</div><div class="nm">岡山 純一</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/奥崇晃/index.html" class="p-icon" data-n="奥 崇晃"><div class="tip">奥 崇晃</div><div class="av">奥</div><div class="nm">奥 崇晃</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/石井真弓/index.html" class="p-icon" data-n="石井 真弓"><div class="tip">石井 真弓</div><div class="av">石</div><div class="nm">石井 真弓</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- 成田くらしのデジタル館 -->
+    <div class="region rc2">
+        <div class="region-hdr">
+            <div class="region-badge">成</div>
+            <div><div class="region-name">成田くらしのデジタル館</div><div class="region-meta">CD: 1301</div></div>
+            <div class="region-cnt">2名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/武田翔人/index.html" class="p-icon" data-n="武田 翔人"><div class="tip">武田 翔人 資格あり</div><div class="av">武</div><div class="nm">武田 翔人</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/飯田敬介/index.html" class="p-icon" data-n="飯田 敬介"><div class="tip">飯田 敬介</div><div class="av">飯</div><div class="nm">飯田 敬介</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- DCL千葉NT -->
+    <div class="region rc3">
+        <div class="region-hdr">
+            <div class="region-badge">千</div>
+            <div><div class="region-name">DCL千葉ニュータウン</div><div class="region-meta">CD: 1511</div></div>
+            <div class="region-cnt">8名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/齋藤えま/index.html" class="p-icon" data-n="齋藤 えま"><div class="tip">齋藤 えま</div><div class="av">齋</div><div class="nm">齋藤 えま</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/森川直人/index.html" class="p-icon" data-n="森川 直人"><div class="tip">森川 直人</div><div class="av">森</div><div class="nm">森川 直人</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/小野寺真唯/index.html" class="p-icon" data-n="小野寺 真唯"><div class="tip">小野寺 真唯</div><div class="av">小</div><div class="nm">小野寺 真唯</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/秋山徹平/index.html" class="p-icon" data-n="秋山 徹平"><div class="tip">秋山 徹平 資格あり</div><div class="av">秋</div><div class="nm">秋山 徹平</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/佐藤諒/index.html" class="p-icon" data-n="佐藤 諒"><div class="tip">佐藤 諒 [VC]</div><div class="av">佐<span class="perfs"><span class="perf perf-VC">VC</span></span></div><div class="nm">佐藤 諒</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/原重彩花/index.html" class="p-icon" data-n="原重 彩花"><div class="tip">原重 彩花 資格あり</div><div class="av">原</div><div class="nm">原重 彩花</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/烏蘭其其格/index.html" class="p-icon" data-n="烏蘭 其其格"><div class="tip">烏蘭 其其格</div><div class="av">烏</div><div class="nm">烏蘭 其其格</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/髙梨聖真/index.html" class="p-icon" data-n="髙梨 聖真"><div class="tip">髙梨 聖真</div><div class="av">髙</div><div class="nm">髙梨 聖真</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- DCL旭 -->
+    <div class="region rc4">
+        <div class="region-hdr">
+            <div class="region-badge">旭</div>
+            <div><div class="region-name">DCL旭</div><div class="region-meta">CD: 1554</div></div>
+            <div class="region-cnt">5名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/平山敬人/index.html" class="p-icon" data-n="平山 敬人"><div class="tip">平山 敬人</div><div class="av">平</div><div class="nm">平山 敬人</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/早川浩史/index.html" class="p-icon" data-n="早川 浩史"><div class="tip">早川 浩史</div><div class="av">早</div><div class="nm">早川 浩史</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/小林敬史/index.html" class="p-icon" data-n="小林 敬史"><div class="tip">小林 敬史</div><div class="av">小</div><div class="nm">小林 敬史</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/遠藤晴香/index.html" class="p-icon" data-n="遠藤 晴香"><div class="tip">遠藤 晴香</div><div class="av">遠</div><div class="nm">遠藤 晴香</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/柴茂雄/index.html" class="p-icon" data-n="柴 茂雄"><div class="tip">柴 茂雄</div><div class="av">柴</div><div class="nm">柴 茂雄</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- DCL四街道 -->
+    <div class="region rc5">
+        <div class="region-hdr">
+            <div class="region-badge">四</div>
+            <div><div class="region-name">DCL四街道</div><div class="region-meta">CD: 1556</div></div>
+            <div class="region-cnt">4名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/富井優太/index.html" class="p-icon" data-n="富井 優太"><div class="tip">富井 優太 [FX/YX/VC]</div><div class="av">富<span class="perfs"><span class="perf perf-FX">FX</span><span class="perf perf-YX">YX</span><span class="perf perf-VC">VC</span></span></div><div class="nm">富井 優太</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/藤本圭/index.html" class="p-icon" data-n="藤本 圭"><div class="tip">藤本 圭 [NX]</div><div class="av">藤<span class="perfs"><span class="perf perf-NX">NX</span></span></div><div class="nm">藤本 圭</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/星野凌我/index.html" class="p-icon" data-n="星野 凌我"><div class="tip">星野 凌我 [NX]</div><div class="av">星<span class="perfs"><span class="perf perf-NX">NX</span></span></div><div class="nm">星野 凌我</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/橘木悠人/index.html" class="p-icon" data-n="橘木 悠人"><div class="tip">橘木 悠人 [FX]</div><div class="av">橘<span class="perfs"><span class="perf perf-FX">FX</span></span></div><div class="nm">橘木 悠人</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- DCL白井駅前 -->
+    <div class="region rc6">
+        <div class="region-hdr">
+            <div class="region-badge">白</div>
+            <div><div class="region-name">DCL白井駅前</div><div class="region-meta">CD: 1568</div></div>
+            <div class="region-cnt">3名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/二村和徳/index.html" class="p-icon" data-n="二村 和徳"><div class="tip">二村 和徳</div><div class="av">二</div><div class="nm">二村 和徳</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/渡辺久斗/index.html" class="p-icon" data-n="渡辺 久斗"><div class="tip">渡辺 久斗</div><div class="av">渡</div><div class="nm">渡辺 久斗</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/椎名淳之/index.html" class="p-icon" data-n="椎名 淳之"><div class="tip">椎名 淳之</div><div class="av">椎</div><div class="nm">椎名 淳之</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    <!-- SL成田 -->
+    <div class="region rc7">
+        <div class="region-hdr">
+            <div class="region-badge">成</div>
+            <div><div class="region-name">SL成田</div><div class="region-meta">CD: 1803</div></div>
+            <div class="region-cnt">4名</div>
+        </div>
+        <div class="people-row">
+            <a href="プランナー/諏訪開飛/index.html" class="p-icon" data-n="諏訪 開飛"><div class="tip">諏訪 開飛</div><div class="av">諏</div><div class="nm">諏訪 開飛</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/小林篤司/index.html" class="p-icon" data-n="小林 篤司"><div class="tip">小林 篤司 [NX]</div><div class="av">小<span class="perfs"><span class="perf perf-NX">NX</span></span></div><div class="nm">小林 篤司</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/山野井尋紀/index.html" class="p-icon" data-n="山野井 尋紀"><div class="tip">山野井 尋紀</div><div class="av">山</div><div class="nm">山野井 尋紀</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+            <a href="プランナー/保屋松綾太/index.html" class="p-icon" data-n="保屋松 綾太"><div class="tip">保屋松 綾太</div><div class="av">保</div><div class="nm">保屋松 綾太</div><div class="nums"><span class="n-k">軒0</span><span class="n-p">人0</span><span class="n-a">AO0</span><span class="n-d">DX0</span></div></a>
+        </div>
+    </div>
+
+    </div>
+</div>
+
+<script>
+var GAS_URL = "https://script.google.com/macros/s/AKfycbztNOVUeCgprzaX4qJQYQPvpYgvS-Zg-fmWMKQacMbsSAqy9MtIfg3s6huWbrhQx3UhQQ/exec";
+
+function filter() {
+    const q = document.getElementById('q').value.toLowerCase();
+    let shown = 0;
+    document.querySelectorAll('.p-icon').forEach(el => {
+        const name = el.dataset.n.toLowerCase();
+        const match = !q || name.includes(q);
+        el.classList.toggle('hidden', !match);
+        if (match) shown++;
+    });
+    document.querySelectorAll('.region').forEach(r => {
+        const visible = r.querySelectorAll('.p-icon:not(.hidden)').length;
+        r.classList.toggle('hidden', visible === 0);
+    });
+    document.getElementById('sPeople').textContent = shown;
+}
+
+// スプレッドシートから集計値を取得してトップページに表示（JSONP方式）
+function loadTotals() {
+    var script = document.createElement("script");
+    script.src = GAS_URL + "?action=totals&callback=onTotalsLoaded&_=" + Date.now();
+    document.body.appendChild(script);
+}
+
+function onTotalsLoaded(data) {
+    var planners = data.planners || data;
+    var totalCust = 0, totalDX = 0, totalAO = 0;
+
+    document.querySelectorAll('.p-icon').forEach(function(el) {
+        var name = el.dataset.n;
+        var d = planners[name] || planners[name.replace(/\s/g, "")];
+        if (!d) return;
+
+        var cust = Number(d.cust) || 0;
+        var people = Number(d.people) || 0;
+        var ao = Number(d.ao) || 0;
+        var dx = Number(d.dx) || 0;
+
+        totalCust += cust;
+        totalDX += dx;
+        totalAO += ao;
+
+        var nums = el.querySelector('.nums');
+        if (nums) {
+            nums.innerHTML = '<span class="n-k">軒' + cust + '</span>'
+                + '<span class="n-p">人' + people + '</span>'
+                + '<span class="n-a">AO' + ao + '</span>'
+                + '<span class="n-d">DX' + dx + '</span>';
+        }
+    });
+
+    document.getElementById('sCust').textContent = totalCust;
+    document.getElementById('sAO').textContent = totalAO;
+    document.getElementById('sDX').textContent = totalDX;
+
+    // 累計アセットTOP10
+    var rankArr = [];
+    for (var pn in planners) {
+        var pa = planners[pn];
+        if (pa.asset && pa.asset > 0) {
+            rankArr.push({ name: pn, asset: pa.asset });
+        }
+    }
+    rankArr.sort(function(a, b) { return b.asset - a.asset; });
+    var top10 = rankArr.slice(0, 10);
+    if (top10.length > 0) {
+        var left = "", right = "";
+        for (var r = 0; r < top10.length; r++) {
+            var medal = r === 0 ? "\uD83E\uDD47" : r === 1 ? "\uD83E\uDD48" : r === 2 ? "\uD83E\uDD49" : "";
+            var isLeft = r < 5;
+            var medalCol = "";
+            if (isLeft) {
+                medalCol = medal ? '<span style="font-size:13px; width:18px; text-align:center; flex-shrink:0;">' + medal + '</span>' : '<span style="width:18px; flex-shrink:0;"></span>';
+            } else if (medal) {
+                medalCol = '<span style="font-size:13px; flex-shrink:0; margin-right:2px;">' + medal + '</span>';
+            }
+            var row = '<div style="display:flex; align-items:center; font-size:11px; line-height:1.9; color:#3a4060;">'
+                + '<span style="flex-shrink:0; margin-right:2px;">' + (r+1) + '.</span>'
+                + medalCol
+                + '<span style="flex:1; white-space:nowrap;">' + top10[r].name + '</span>'
+                + '<span style="font-weight:700; color:#4a7cc9; margin-left:8px;">' + top10[r].asset + '</span>'
+                + '</div>';
+            if (r < 5) left += row; else right += row;
+        }
+        var rhtml = '<div style="min-width:120px;">' + left + '</div>';
+        if (right) rhtml += '<div style="min-width:120px;">' + right + '</div>';
+        document.getElementById("rankList").innerHTML = rhtml;
+    } else {
+        document.getElementById("rankList").innerHTML = '<div style="font-size:11px; color:#8a90a8; line-height:1.6; padding:6px 2px;">今月の実績入力をお待ちください</div>';
+    }
+    document.getElementById("assetRanking").style.display = "flex";
+}
+
+// 競合一覧を取得して警告バナーに表示
+function loadConflicts() {
+    var script = document.createElement("script");
+    script.src = GAS_URL + "?action=conflicts&callback=onConflictsLoaded&_=" + Date.now();
+    document.body.appendChild(script);
+}
+
+function onConflictsLoaded(data) {
+    if (!data || data.status !== "ok" || !data.conflicts || data.conflicts.length === 0) return;
+    var banner = document.getElementById("conflictBanner");
+    var header = document.getElementById("conflictHeader");
+    var details = document.getElementById("conflictDetails");
+    if (!banner || !header || !details) return;
+
+    // 同じ日付ごとにグループ化
+    var byDate = {};
+    for (var i = 0; i < data.conflicts.length; i++) {
+        var c = data.conflicts[i];
+        if (!byDate[c.date]) byDate[c.date] = [];
+        byDate[c.date].push(c);
+    }
+    var dateList = Object.keys(byDate).sort().reverse();
+    header.textContent = "⚠️ apoと手入力の両方に入力された日があります（" + dateList.length + "日 / " + data.conflicts.length + "件）";
+
+    var html = "";
+    for (var d = 0; d < dateList.length; d++) {
+        var dt = dateList[d];
+        html += '<div style="margin-bottom:8px;"><strong>' + dt + '</strong></div>';
+        var items = byDate[dt];
+        for (var j = 0; j < items.length; j++) {
+            var it = items[j];
+            html += '<div style="padding:4px 12px; font-size:12px;">　・' + it.name + 'さん 「' + it.item + '」 — ' + it.sources.join(' と ') + ' の両方</div>';
+        }
+    }
+    html += '<div style="margin-top:10px; font-size:11px; color:#a07730;">※ apo側の値で上書きされています。問題ある場合は手動で修正してください。</div>';
+    details.innerHTML = html;
+    banner.style.display = "block";
+}
+
+function toggleConflictDetails() {
+    var d = document.getElementById("conflictDetails");
+    var a = document.getElementById("conflictToggleArrow");
+    if (!d || !a) return;
+    if (d.style.display === "none") {
+        d.style.display = "block";
+        a.textContent = "▼ 閉じる";
+    } else {
+        d.style.display = "none";
+        a.textContent = "▶ 詳細";
+    }
+}
+
+// 連絡事項を取得して表示
+function loadNotices() {
+    var script = document.createElement("script");
+    script.src = GAS_URL + "?action=notices&callback=onNoticesLoaded&_=" + Date.now();
+    document.body.appendChild(script);
+}
+
+function onNoticesLoaded(data) {
+    var area = document.getElementById("noticeList");
+    if (!area) return;
+    if (!data || data.status !== "ok" || !data.notices || data.notices.length === 0) {
+        area.innerHTML = '<div class="notice-empty">連絡事項はありません</div>';
+        return;
+    }
+    var html = "";
+    for (var i = 0; i < data.notices.length; i++) {
+        var n = data.notices[i];
+        var d = document.createElement("div");
+        d.textContent = n.content;
+        var content = d.innerHTML;
+        var dt = document.createElement("div");
+        dt.textContent = n.date;
+        var date = dt.innerHTML;
+        html += '<div class="notice-item"><span class="notice-date">' + date + '</span>' + content + '</div>';
+    }
+    area.innerHTML = html;
+}
+
+// ページ読み込み時に集計を取得
+loadTotals();
+loadConflicts();
+loadNotices();
+</script>
+</body>
+</html>
