@@ -5,7 +5,15 @@
     "base": "スマートライフ富里インター店",
     "cd": 1126,
     "performer": "YA/NX/FX/YX/SM/VC",
-    "shikaku": 0
+    "shikaku": 0,
+    "perf_titles": {
+      "YA": "豊かな暮らしASSET拡大パフォーマー",
+      "NX": "FAS-NX ASSET拡大パフォーマー",
+      "FX": "問診型FAS-FX拡張パフォーマー",
+      "YX": "FAS-Y YX拡張パフォーマー",
+      "SM": "ステーブルマネジメントパフォーマー",
+      "VC": "Premium Status ValueCourse26拡大パフォーマー"
+    }
   },
   "fas_status": {
     "担当軒数": 0,

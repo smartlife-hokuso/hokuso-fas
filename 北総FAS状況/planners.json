@@ -6,7 +6,12 @@
     "folder": "髙木柚伽",
     "performer": "NX/VC/YA",
     "shikaku": 0,
-    "emp_id": 101599
+    "emp_id": 101599,
+    "perf_titles": {
+      "NX": "FAS-NX ASSET拡大パフォーマー",
+      "VC": "Premium Status ValueCourse26拡大パフォーマー",
+      "YA": "豊かな暮らしASSET拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -15,7 +20,12 @@
     "folder": "齋藤和樹",
     "performer": "FX/NX/VC",
     "shikaku": 0,
-    "emp_id": 101254
+    "emp_id": 101254,
+    "perf_titles": {
+      "FX": "問診型FAS-FX拡張パフォーマー",
+      "NX": "FAS-NX ASSET拡大パフォーマー",
+      "VC": "Premium Status ValueCourse26拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -24,7 +34,8 @@
     "folder": "鈴木啓人",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116676
+    "emp_id": 116676,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -33,7 +44,8 @@
     "folder": "並木孝博",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 100766
+    "emp_id": 100766,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -42,7 +54,8 @@
     "folder": "福田花梨",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 129114
+    "emp_id": 129114,
+    "perf_titles": {}
   },
   {
     "cd": 1301,
@@ -51,7 +64,8 @@
     "folder": "飯田敬介",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 131864
+    "emp_id": 131864,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -60,7 +74,11 @@
     "folder": "渡会佳祐",
     "performer": "VC/DX",
     "shikaku": 0,
-    "emp_id": 132807
+    "emp_id": 132807,
+    "perf_titles": {
+      "VC": "Club Premium25 VC会員拡大パフォーマー",
+      "DX": "DXコンサルティング型パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -69,7 +87,8 @@
     "folder": "田中乃凪",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 132853
+    "emp_id": 132853,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -78,7 +97,11 @@
     "folder": "田中大也",
     "performer": "VC/AO",
     "shikaku": 0,
-    "emp_id": 132025
+    "emp_id": 132025,
+    "perf_titles": {
+      "VC": "Premium Status ValueCourse26拡大パフォーマー",
+      "AO": "学びの意欲モチベーション拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -87,7 +110,10 @@
     "folder": "飯田未来",
     "performer": "NX",
     "shikaku": 0,
-    "emp_id": 130206
+    "emp_id": 130206,
+    "perf_titles": {
+      "NX": "FAS-NX ASSET拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -96,7 +122,8 @@
     "folder": "中渡瀬理恵",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116563
+    "emp_id": 116563,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -105,7 +132,8 @@
     "folder": "須田歩",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116586
+    "emp_id": 116586,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -114,7 +142,8 @@
     "folder": "植野友介",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 132817
+    "emp_id": 132817,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -123,7 +152,8 @@
     "folder": "初見健太朗",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 100538
+    "emp_id": 100538,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -132,7 +162,8 @@
     "folder": "渋谷航大",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 132870
+    "emp_id": 132870,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -141,7 +172,11 @@
     "folder": "守田ゆき",
     "performer": "CO/VC",
     "shikaku": 0,
-    "emp_id": 100882
+    "emp_id": 100882,
+    "perf_titles": {
+      "CO": "プランナー伴走型FAS拡張コーチ",
+      "VC": "Premium Status ValueCourse26拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -150,7 +185,12 @@
     "folder": "後藤航太",
     "performer": "NX/VC/AO",
     "shikaku": 0,
-    "emp_id": 129064
+    "emp_id": 129064,
+    "perf_titles": {
+      "NX": "FAS-NX ASSET拡大パフォーマー",
+      "VC": "Premium Status ValueCourse26拡大パフォーマー",
+      "AO": "学びの意欲モチベーション拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -159,7 +199,15 @@
     "folder": "外山由佳",
     "performer": "YA/NX/FX/YX/SM/VC",
     "shikaku": 0,
-    "emp_id": 129829
+    "emp_id": 129829,
+    "perf_titles": {
+      "YA": "豊かな暮らしASSET拡大パフォーマー",
+      "NX": "FAS-NX ASSET拡大パフォーマー",
+      "FX": "問診型FAS-FX拡張パフォーマー",
+      "YX": "FAS-Y YX拡張パフォーマー",
+      "SM": "ステーブルマネジメントパフォーマー",
+      "VC": "Premium Status ValueCourse26拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -168,7 +216,11 @@
     "folder": "佐藤凌太",
     "performer": "NX/VC",
     "shikaku": 0,
-    "emp_id": 101258
+    "emp_id": 101258,
+    "perf_titles": {
+      "NX": "ラウンド型FAS-NX拡張パフォーマー",
+      "VC": "Club Premium25 VC会員拡大パフォーマー"
+    }
   },
   {
     "cd": 1126,
@@ -177,7 +229,8 @@
     "folder": "岡山純一",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 100702
+    "emp_id": 100702,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -186,7 +239,8 @@
     "folder": "奥崇晃",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 130879
+    "emp_id": 130879,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -195,7 +249,8 @@
     "folder": "石井真弓",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116811
+    "emp_id": 116811,
+    "perf_titles": {}
   },
   {
     "cd": 1126,
@@ -204,7 +259,8 @@
     "folder": "三木星空",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 133824
+    "emp_id": 133824,
+    "perf_titles": {}
   },
   {
     "cd": 1301,
@@ -213,7 +269,8 @@
     "folder": "武田翔人",
     "performer": "",
     "shikaku": 1,
-    "emp_id": 101478
+    "emp_id": 101478,
+    "perf_titles": {}
   },
   {
     "cd": 1511,
@@ -222,7 +279,8 @@
     "folder": "森川直人",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 101221
+    "emp_id": 101221,
+    "perf_titles": {}
   },
   {
     "cd": 1511,
@@ -231,7 +289,8 @@
     "folder": "小野寺真唯",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 101815
+    "emp_id": 101815,
+    "perf_titles": {}
   },
   {
     "cd": 1511,
@@ -240,7 +299,8 @@
     "folder": "秋山徹平",
     "performer": "",
     "shikaku": 1,
-    "emp_id": 132011
+    "emp_id": 132011,
+    "perf_titles": {}
   },
   {
     "cd": 1511,
@@ -249,7 +309,10 @@
     "folder": "佐藤諒",
     "performer": "VC*",
     "shikaku": 1,
-    "emp_id": 130877
+    "emp_id": 130877,
+    "perf_titles": {
+      "VC": "Premium Status ValueCourse26拡大パフォーマー（3マンツトライアル中）"
+    }
   },
   {
     "cd": 1511,
@@ -258,7 +321,8 @@
     "folder": "原重彩花",
     "performer": "",
     "shikaku": 1,
-    "emp_id": 131810
+    "emp_id": 131810,
+    "perf_titles": {}
   },
   {
     "cd": 1511,
@@ -267,7 +331,8 @@
     "folder": "髙梨聖真",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116561
+    "emp_id": 116561,
+    "perf_titles": {}
   },
   {
     "cd": 1554,
@@ -276,7 +341,8 @@
     "folder": "平山敬人",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116413
+    "emp_id": 116413,
+    "perf_titles": {}
   },
   {
     "cd": 1554,
@@ -285,7 +351,8 @@
     "folder": "早川浩史",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 131831
+    "emp_id": 131831,
+    "perf_titles": {}
   },
   {
     "cd": 1554,
@@ -294,7 +361,8 @@
     "folder": "小林敬史",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 101252
+    "emp_id": 101252,
+    "perf_titles": {}
   },
   {
     "cd": 1554,
@@ -303,7 +371,8 @@
     "folder": "遠藤晴香",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 133403
+    "emp_id": 133403,
+    "perf_titles": {}
   },
   {
     "cd": 1554,
@@ -312,7 +381,8 @@
     "folder": "柴茂雄",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116661
+    "emp_id": 116661,
+    "perf_titles": {}
   },
   {
     "cd": 1556,
@@ -321,7 +391,12 @@
     "folder": "富井優太",
     "performer": "FX/YX/VC",
     "shikaku": 1,
-    "emp_id": 132844
+    "emp_id": 132844,
+    "perf_titles": {
+      "FX": "問診型FAS-FX拡張パフォーマー",
+      "YX": "FAS-Y YX拡張パフォーマー",
+      "VC": "Club Premium25 VC会員拡大パフォーマー"
+    }
   },
   {
     "cd": 1556,
@@ -330,7 +405,11 @@
     "folder": "藤本圭",
     "performer": "KT/NX",
     "shikaku": 1,
-    "emp_id": 101328
+    "emp_id": 101328,
+    "perf_titles": {
+      "KT": "ラウンド型暮らしを止めないパフォーマー",
+      "NX": "ラウンド型FAS-NX ASSET拡大パフォーマー"
+    }
   },
   {
     "cd": 1556,
@@ -339,7 +418,11 @@
     "folder": "星野凌我",
     "performer": "NX*/YA*",
     "shikaku": 1,
-    "emp_id": 130581
+    "emp_id": 130581,
+    "perf_titles": {
+      "NX": "FAS-NX ASSET拡大パフォーマー（3マンツトライアル中）",
+      "YA": "豊かな暮らしASSET拡大パフォーマー（3マンツトライアル中）"
+    }
   },
   {
     "cd": 1556,
@@ -348,7 +431,11 @@
     "folder": "橘木悠人",
     "performer": "FX/YA",
     "shikaku": 1,
-    "emp_id": 131008
+    "emp_id": 131008,
+    "perf_titles": {
+      "FX": "問診型FAS-FX拡張パフォーマー",
+      "YA": "エンジニア型豊かな暮らしASSET拡大パフォーマー"
+    }
   },
   {
     "cd": 1568,
@@ -357,7 +444,8 @@
     "folder": "二村和徳",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 100231
+    "emp_id": 100231,
+    "perf_titles": {}
   },
   {
     "cd": 1568,
@@ -366,7 +454,8 @@
     "folder": "渡辺久斗",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 101303
+    "emp_id": 101303,
+    "perf_titles": {}
   },
   {
     "cd": 1568,
@@ -375,7 +464,8 @@
     "folder": "椎名淳之",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116803
+    "emp_id": 116803,
+    "perf_titles": {}
   },
   {
     "cd": 1803,
@@ -384,7 +474,8 @@
     "folder": "諏訪開飛",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 129024
+    "emp_id": 129024,
+    "perf_titles": {}
   },
   {
     "cd": 1803,
@@ -393,7 +484,10 @@
     "folder": "小林篤司",
     "performer": "LL",
     "shikaku": 1,
-    "emp_id": 100929
+    "emp_id": 100929,
+    "perf_titles": {
+      "LL": "ラウンド型L&L lounge・L&Lコミュニティカレッジ会員拡大パフォーマー"
+    }
   },
   {
     "cd": 1803,
@@ -402,6 +496,7 @@
     "folder": "保屋松綾太",
     "performer": "",
     "shikaku": 0,
-    "emp_id": 116780
+    "emp_id": 116780,
+    "perf_titles": {}
   }
 ]

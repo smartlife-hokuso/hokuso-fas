@@ -5,7 +5,8 @@
     "base": "DCL白井駅前店内店",
     "cd": 1568,
     "performer": "",
-    "shikaku": 0
+    "shikaku": 0,
+    "perf_titles": {}
   },
   "fas_status": {
     "担当軒数": 0,

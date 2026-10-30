@@ -5,7 +5,8 @@
     "base": "スマートライフ富里インター店",
     "cd": 1126,
     "performer": "",
-    "shikaku": 0
+    "shikaku": 0,
+    "perf_titles": {}
   },
   "fas_status": {
     "担当軒数": 0,

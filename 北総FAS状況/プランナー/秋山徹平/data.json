@@ -5,7 +5,8 @@
     "base": "DCL千葉ﾆｭｰﾀｳﾝ店内店",
     "cd": 1511,
     "performer": "",
-    "shikaku": 1
+    "shikaku": 1,
+    "perf_titles": {}
   },
   "fas_status": {
     "担当軒数": 0,

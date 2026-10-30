@@ -5,7 +5,11 @@
     "base": "DCL四街道店内店",
     "cd": 1556,
     "performer": "NX*/YA*",
-    "shikaku": 1
+    "shikaku": 1,
+    "perf_titles": {
+      "NX": "FAS-NX ASSET拡大パフォーマー（3マンツトライアル中）",
+      "YA": "豊かな暮らしASSET拡大パフォーマー（3マンツトライアル中）"
+    }
   },
   "fas_status": {
     "担当軒数": 0,

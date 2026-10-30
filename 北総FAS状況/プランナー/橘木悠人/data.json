@@ -5,7 +5,11 @@
     "base": "DCL四街道店内店",
     "cd": 1556,
     "performer": "FX/YA",
-    "shikaku": 1
+    "shikaku": 1,
+    "perf_titles": {
+      "FX": "問診型FAS-FX拡張パフォーマー",
+      "YA": "エンジニア型豊かな暮らしASSET拡大パフォーマー"
+    }
   },
   "fas_status": {
     "担当軒数": 0,

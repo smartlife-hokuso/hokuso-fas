@@ -457,6 +457,9 @@ async function init() {
             var trial = /\*$/.test(parts[i]);
             b.className = "badge" + (trial ? " trial" : "");
             b.textContent = trial ? parts[i].slice(0, -1) + "（トライアル）" : parts[i];
+            // マウスを乗せると正式名称
+            var full = (p.perf_titles || {})[parts[i].replace(/\*$/, "")];
+            if (full) { b.title = full; b.style.cursor = "help"; }
             badges.appendChild(b);
         }
     }

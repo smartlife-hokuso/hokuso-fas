@@ -5,7 +5,8 @@
     "base": "成田くらしのデジタル館",
     "cd": 1301,
     "performer": "",
-    "shikaku": 0
+    "shikaku": 0,
+    "perf_titles": {}
   },
   "fas_status": {
     "担当軒数": 0,

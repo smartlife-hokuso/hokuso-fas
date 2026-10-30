@@ -5,7 +5,11 @@
     "base": "DCL四街道店内店",
     "cd": 1556,
     "performer": "KT/NX",
-    "shikaku": 1
+    "shikaku": 1,
+    "perf_titles": {
+      "KT": "ラウンド型暮らしを止めないパフォーマー",
+      "NX": "ラウンド型FAS-NX ASSET拡大パフォーマー"
+    }
   },
   "fas_status": {
     "担当軒数": 0,

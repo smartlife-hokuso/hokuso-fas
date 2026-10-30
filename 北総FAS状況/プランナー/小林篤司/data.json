@@ -5,7 +5,10 @@
     "base": "スマートライフ成田店",
     "cd": 1803,
     "performer": "LL",
-    "shikaku": 1
+    "shikaku": 1,
+    "perf_titles": {
+      "LL": "ラウンド型L&L lounge・L&Lコミュニティカレッジ会員拡大パフォーマー"
+    }
   },
   "fas_status": {
     "担当軒数": 0,
