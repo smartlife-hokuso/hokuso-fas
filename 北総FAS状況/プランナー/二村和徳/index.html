@@ -135,6 +135,13 @@ body {
 .data-item .label .note {
     display: block; font-size: 10px; color: #9aa2b8; font-weight: 400; margin-top: 2px;
 }
+/* 新機能の目印（NEW） */
+.new-badge {
+    display: inline-block; margin-right: 5px; padding: 1px 6px; border-radius: 8px;
+    background: linear-gradient(135deg, #f08aa8, #f5a96b); color: #fff;
+    font-family: "Quicksand", sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    vertical-align: 1px;
+}
 /* 自動反映の項目（編集モードでも入力欄を出さない） */
 .edit-mode .data-item.auto .value { display: inline; }
 .data-item.auto .label .note { color: #8bb3a0; }
@@ -317,7 +324,7 @@ body {
             <button class="tab-btn active" data-tab="fas">FAS状況</button>
             <button class="tab-btn" data-tab="win">WIN状況</button>
             <button class="tab-btn" data-tab="asset">アセット実現（当月）</button>
-            <button class="tab-btn" data-tab="seatbox">シートボックス</button>
+            <button class="tab-btn" data-tab="seatbox"><span class="new-badge">NEW</span>シートボックス</button>
             <button class="tab-btn" data-tab="event">イベント</button>
             <button class="tab-btn" data-tab="appoint">アポイント（当月）</button>
             <button class="tab-btn" data-tab="recruit">人材獲得</button>

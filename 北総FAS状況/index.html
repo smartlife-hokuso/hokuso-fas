@@ -67,6 +67,13 @@ body {
     font-size: 26px; font-weight: 700; color: #3a4060; line-height: 1;
 }
 .icon-stat .lbl { font-size: 11px; color: #8a90a8; margin-top: 3px; }
+/* 新機能の目印（NEW） */
+.new-badge {
+    display: inline-block; margin-right: 5px; padding: 1px 6px; border-radius: 8px;
+    background: linear-gradient(135deg, #f08aa8, #f5a96b); color: #fff;
+    font-family: "Quicksand", sans-serif; font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+    vertical-align: 1px;
+}
 /* ランキング（3枚横並び、スマホは縦積み） */
 .rank-row {
     display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: -10px 0 26px;
@@ -325,7 +332,7 @@ body {
     <div class="rank-row" id="rankRow" style="display:none;">
         <div class="rank-card"><div class="rank-ttl">累計アセット TOP5</div><div class="rank-list" id="rankAsset"></div></div>
         <div class="rank-card"><div class="rank-ttl">AO生 TOP5</div><div class="rank-list" id="rankAO"></div></div>
-        <div class="rank-card"><div class="rank-ttl">シートボックス受注 TOP5</div><div class="rank-list" id="rankSB"></div></div>
+        <div class="rank-card"><div class="rank-ttl"><span class="new-badge">NEW</span>シートボックス受注 TOP5</div><div class="rank-list" id="rankSB"></div></div>
     </div>
 
     <div id="conflictBanner" style="display:none; background:linear-gradient(135deg, #fff5e6, #fff0d6); border:1px solid #f5c89c; border-radius:14px; padding:14px 18px; margin-bottom:14px; cursor:pointer;" onclick="toggleConflictDetails()">
