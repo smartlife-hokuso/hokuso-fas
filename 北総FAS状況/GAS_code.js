@@ -30,7 +30,7 @@ var SEATBOX_PERIODS = [1, 2];
 var SEATBOX_AUTO_LABELS = ["スタンバイ", "受注", "完了"];
 function seatboxItemName(period, label) { return "第" + period + "期シートボックス" + label; }
 
-// apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（22名、石井（俊）・高橋は除外）
+// apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（21名、石井（俊）・高橋・鈴木は除外）
 var APO_TO_FAS_NAME = {
   "並木": "並木 孝博",
   "中渡瀬": "中渡瀬 理恵",
@@ -48,7 +48,6 @@ var APO_TO_FAS_NAME = {
   "田中（大）": "田中 大也",
   "石井（真）": "石井 真弓",
   "福田": "福田 花梨",
-  "鈴木": "鈴木 啓人",
   "須田": "須田 歩",
   "飯田（敬）": "飯田 敬介",
   "飯田（未）": "飯田 未来",
@@ -1767,4 +1766,58 @@ function applyMemberChange20261031() {
   var msg = "削除" + removed.length + "名: " + removed.join(", ") + " / 追加: " + (exists ? "（既に存在）" : ADD.name);
   Logger.log(msg);
   return msg;
+}
+
+// ===== メンバー変更の共通処理 =====
+// removeNames の列を削除し、adds（{name, region}）を各拠点の最後の列の右に追加する。
+// 実行前に現シートを backupName で丸ごと複製。同名バックアップがあれば実行済みとして何もしない。
+function changeMembers(removeNames, adds, backupName) {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  if (ss.getSheetByName(backupName)) return "実行済みです（" + backupName + " があります）";
+  var backup = ws.copyTo(ss);
+  backup.setName(backupName);
+  ss.setActiveSheet(backup);
+  ss.moveActiveSheet(ss.getNumSheets());
+
+  var removeSet = {};
+  for (var i = 0; i < removeNames.length; i++) removeSet[removeNames[i].replace(/\s/g, "")] = true;
+  var lastCol = ws.getLastColumn();
+  var top = ws.getRange(2, 1, 2, lastCol).getValues(); // 2行目=拠点, 3行目=名前
+  var removed = [];
+  for (var c = lastCol - 1; c >= 3; c--) { // 右から消す（列番号ずれ防止）
+    var nm = top[1][c] ? top[1][c].toString().replace(/\s/g, "") : "";
+    if (removeSet[nm]) { ws.deleteColumn(c + 1); removed.push(top[1][c]); }
+  }
+
+  var added = [];
+  for (var a = 0; a < adds.length; a++) {
+    top = ws.getRange(2, 1, 2, ws.getLastColumn()).getValues();
+    var exists = false, after = ws.getLastColumn();
+    for (var c2 = 3; c2 < top[1].length; c2++) {
+      if (top[1][c2] && top[1][c2].toString().replace(/\s/g, "") === adds[a].name.replace(/\s/g, "")) exists = true;
+      if (top[0][c2] && top[0][c2].toString().trim() === adds[a].region) after = c2 + 1;
+    }
+    if (exists) continue;
+    ws.insertColumnAfter(after);
+    ws.getRange(2, after + 1).setValue(adds[a].region);
+    ws.getRange(3, after + 1).setValue(adds[a].name);
+    var rows = ws.getLastRow() - 3;
+    var zeros = [];
+    for (var z = 0; z < rows; z++) zeros.push([0]);
+    if (rows > 0) ws.getRange(4, after + 1, rows, 1).setValues(zeros);
+    added.push(adds[a].name);
+  }
+  var msg = "削除" + removed.length + "名: " + (removed.join(", ") || "なし") + " / 追加" + added.length + "名: " + (added.join(", ") || "なし");
+  Logger.log(msg);
+  return msg;
+}
+
+// 2026-10-31（2回目）: 鈴木啓人を削除、SL成田に桑山綾・福知里紗を追加（GASエディタで1回だけ実行）
+function applyMemberChange20261031b() {
+  return changeMembers(
+    ["鈴木 啓人"],
+    [{ name: "桑山 綾", region: "SL成田" }, { name: "福知 里紗", region: "SL成田" }],
+    "バックアップ_20261031メンバー変更2"
+  );
 }

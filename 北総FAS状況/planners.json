@@ -30,16 +30,6 @@
   {
     "cd": 1126,
     "base": "スマートライフ富里インター店",
-    "name": "鈴木 啓人",
-    "folder": "鈴木啓人",
-    "performer": "",
-    "shikaku": 0,
-    "emp_id": 116676,
-    "perf_titles": {}
-  },
-  {
-    "cd": 1126,
-    "base": "スマートライフ富里インター店",
     "name": "並木 孝博",
     "folder": "並木孝博",
     "performer": "",
@@ -497,6 +487,26 @@
     "performer": "",
     "shikaku": 0,
     "emp_id": 116780,
+    "perf_titles": {}
+  },
+  {
+    "cd": 1803,
+    "base": "スマートライフ成田店",
+    "name": "桑山 綾",
+    "folder": "桑山綾",
+    "performer": "",
+    "shikaku": 0,
+    "emp_id": 116807,
+    "perf_titles": {}
+  },
+  {
+    "cd": 1803,
+    "base": "スマートライフ成田店",
+    "name": "福知 里紗",
+    "folder": "福知里紗",
+    "performer": "",
+    "shikaku": 0,
+    "emp_id": 116823,
     "perf_titles": {}
   }
 ]
