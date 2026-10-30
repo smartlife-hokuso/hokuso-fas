@@ -174,10 +174,17 @@ function readTotals() {
       asset += Number(allData[itemRows[assetKeys[ak]]] ? allData[itemRows[assetKeys[ak]]][c] : 0) || 0;
     }
 
+    // シートボックス受注（第1期＋第2期）。トップページのランキング用
+    var sbOrder = 0;
+    for (var sp = 0; sp < SEATBOX_PERIODS.length; sp++) {
+      var sbRow = itemRows[seatboxItemName(SEATBOX_PERIODS[sp], "受注")];
+      if (sbRow !== undefined) sbOrder += Number(allData[sbRow][c]) || 0;
+    }
+
     totalCust += cust;
     totalDX += dx;
     totalAO += ao;
-    planners[nameKey] = { cust: cust, people: people, ao: ao, dx: dx, asset: asset };
+    planners[nameKey] = { cust: cust, people: people, ao: ao, dx: dx, asset: asset, sbOrder: sbOrder };
   }
 
   return { totalCust: totalCust, totalDX: totalDX, totalAO: totalAO, planners: planners };
