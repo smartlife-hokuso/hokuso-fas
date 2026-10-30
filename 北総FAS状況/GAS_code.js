@@ -1814,10 +1814,15 @@ function changeMembers(removeNames, adds, backupName) {
 }
 
 // 2026-10-31（2回目）: 鈴木啓人を削除、SL成田に桑山綾・福知里紗を追加（GASエディタで1回だけ実行）
+// 続けてシートボックスを強制再反映し、追加した人の列にもSeatBOX個人帳票の数字を入れる
 function applyMemberChange20261031b() {
-  return changeMembers(
+  var msg = changeMembers(
     ["鈴木 啓人"],
     [{ name: "桑山 綾", region: "SL成田" }, { name: "福知 里紗", region: "SL成田" }],
     "バックアップ_20261031メンバー変更2"
   );
+  var sb = syncSeatboxFromDrive(true);
+  msg += " / シートボックス: " + sb.message;
+  Logger.log(msg);
+  return msg;
 }
