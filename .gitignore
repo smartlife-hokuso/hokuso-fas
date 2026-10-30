@@ -1,3 +1,6 @@
 .DS_Store
 .tmp.driveupload/
 .claude/
+
+# 機密資料（パフォーマー認定者一覧）は公開リポジトリに上げない
+北総FAS状況/全認定者*.pdf
