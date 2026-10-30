@@ -4,7 +4,7 @@
     "base": "スマートライフ富里インター店",
     "name": "髙木 柚伽",
     "folder": "髙木柚伽",
-    "performer": "NX/VC",
+    "performer": "NX/VC/YA",
     "shikaku": 0,
     "emp_id": 101599
   },
@@ -13,7 +13,7 @@
     "base": "スマートライフ富里インター店",
     "name": "齋藤 和樹",
     "folder": "齋藤和樹",
-    "performer": "NX/FX/VC",
+    "performer": "FX/NX/VC",
     "shikaku": 0,
     "emp_id": 101254
   },
@@ -58,7 +58,7 @@
     "base": "スマートライフ富里インター店",
     "name": "渡会 佳祐",
     "folder": "渡会佳祐",
-    "performer": "DX/VC",
+    "performer": "VC/DX",
     "shikaku": 0,
     "emp_id": 132807
   },
@@ -85,7 +85,7 @@
     "base": "スマートライフ富里インター店",
     "name": "飯田 未来",
     "folder": "飯田未来",
-    "performer": "NX/VC",
+    "performer": "NX",
     "shikaku": 0,
     "emp_id": 130206
   },
@@ -139,7 +139,7 @@
     "base": "スマートライフ富里インター店",
     "name": "守田 ゆき",
     "folder": "守田ゆき",
-    "performer": "FX/NX/VC",
+    "performer": "CO/VC",
     "shikaku": 0,
     "emp_id": 100882
   },
@@ -148,7 +148,7 @@
     "base": "スマートライフ富里インター店",
     "name": "後藤 航太",
     "folder": "後藤航太",
-    "performer": "NX/VC",
+    "performer": "NX/VC/AO",
     "shikaku": 0,
     "emp_id": 129064
   },
@@ -157,7 +157,7 @@
     "base": "スマートライフ富里インター店",
     "name": "外山 由佳",
     "folder": "外山由佳",
-    "performer": "NX/FX/YX/VC",
+    "performer": "YA/NX/FX/YX/SM/VC",
     "shikaku": 0,
     "emp_id": 129829
   },
@@ -328,7 +328,7 @@
     "base": "DCL四街道店内店",
     "name": "藤本 圭",
     "folder": "藤本圭",
-    "performer": "NX",
+    "performer": "KT/NX",
     "shikaku": 1,
     "emp_id": 101328
   },
@@ -337,7 +337,7 @@
     "base": "DCL四街道店内店",
     "name": "星野 凌我",
     "folder": "星野凌我",
-    "performer": "NX",
+    "performer": "NX/YA",
     "shikaku": 1,
     "emp_id": 130581
   },
@@ -346,7 +346,7 @@
     "base": "DCL四街道店内店",
     "name": "橘木 悠人",
     "folder": "橘木悠人",
-    "performer": "FX",
+    "performer": "FX/YA",
     "shikaku": 1,
     "emp_id": 131008
   },
@@ -391,7 +391,7 @@
     "base": "スマートライフ成田店",
     "name": "小林 篤司",
     "folder": "小林篤司",
-    "performer": "NX",
+    "performer": "LL",
     "shikaku": 1,
     "emp_id": 100929
   },
