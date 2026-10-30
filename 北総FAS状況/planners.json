@@ -247,7 +247,7 @@
     "base": "DCL千葉ﾆｭｰﾀｳﾝ店内店",
     "name": "佐藤 諒",
     "folder": "佐藤諒",
-    "performer": "VC",
+    "performer": "VC*",
     "shikaku": 1,
     "emp_id": 130877
   },
@@ -337,7 +337,7 @@
     "base": "DCL四街道店内店",
     "name": "星野 凌我",
     "folder": "星野凌我",
-    "performer": "NX/YA",
+    "performer": "NX*/YA*",
     "shikaku": 1,
     "emp_id": 130581
   },

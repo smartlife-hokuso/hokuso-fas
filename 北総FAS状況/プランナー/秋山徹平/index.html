@@ -57,6 +57,7 @@ body {
     font-size: 11px; padding: 3px 10px;
     background: rgba(255,255,255,0.2); border-radius: 12px;
 }
+.profile-info .badge.trial { background: rgba(255,255,255,0.08); color: rgba(255,255,255,0.55); border: 1px dashed rgba(255,255,255,0.4); }
 
 .loading {
     text-align: center; padding: 60px; color: #8a90a8; font-size: 15px;
@@ -452,8 +453,10 @@ async function init() {
         var parts = p.performer.split("/");
         for (var i = 0; i < parts.length; i++) {
             var b = document.createElement("span");
-            b.className = "badge";
-            b.textContent = parts[i];
+            // 末尾 * はトライアル中（3ヶ月猶予）→グレー表示
+            var trial = /\*$/.test(parts[i]);
+            b.className = "badge" + (trial ? " trial" : "");
+            b.textContent = trial ? parts[i].slice(0, -1) + "（トライアル）" : parts[i];
             badges.appendChild(b);
         }
     }
