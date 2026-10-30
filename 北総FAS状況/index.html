@@ -92,6 +92,7 @@ body {
 .rank-item .nm { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rank-item .vl { font-weight: 700; color: #4a7cc9; margin-left: 6px; }
 .rank-empty { grid-column: 1 / -1; font-size: 11px; color: #8a90a8; line-height: 1.6; padding: 6px 2px; text-align: center; }
+.ic-box { background: linear-gradient(135deg, #e0708a, #f29bb0); }
 .ic-people { background: linear-gradient(135deg, #4a7cc9, #6b9ee0); }
 .ic-bases { background: linear-gradient(135deg, #6b5ea6, #9b8ec4); }
 .ic-cust { background: linear-gradient(135deg, #4a9c7c, #6bc0a0); }
@@ -334,6 +335,11 @@ body {
             <div class="num" id="sDX">-</div>
             <div class="lbl">総DX数</div>
         </div>
+        <div class="icon-stat">
+            <div class="ic ic-box"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></div>
+            <div class="num" id="sBox">-</div>
+            <div class="lbl"><span class="new-badge">NEW</span>シートボックス受注</div>
+        </div>
     </div>
 
     <!-- ランキング TOP5（アセット／AO生／シートボックス受注） -->
@@ -521,7 +527,7 @@ function loadTotals() {
 
 function onTotalsLoaded(data) {
     var planners = data.planners || data;
-    var totalCust = 0, totalDX = 0, totalAO = 0;
+    var totalCust = 0, totalDX = 0, totalAO = 0, totalBox = 0;
 
     document.querySelectorAll('.p-icon').forEach(function(el) {
         var name = el.dataset.n;
@@ -536,6 +542,7 @@ function onTotalsLoaded(data) {
         totalCust += cust;
         totalDX += dx;
         totalAO += ao;
+        totalBox += Number(d.sbOrder) || 0;
 
         var nums = el.querySelector('.nums');
         if (nums) {
@@ -550,6 +557,7 @@ function onTotalsLoaded(data) {
     document.getElementById('sCust').textContent = totalCust;
     document.getElementById('sAO').textContent = totalAO;
     document.getElementById('sDX').textContent = totalDX;
+    document.getElementById('sBox').textContent = totalBox;
 
     // ランキングTOP5（アセット／AO生／シートボックス受注）
     renderRanking("rankAsset", planners, "asset", "今月の実績入力をお待ちください");
