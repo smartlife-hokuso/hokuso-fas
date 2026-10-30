@@ -7,6 +7,29 @@ var PLAN_FOLDER_NAME = "FAS計画生産シート";
 var PLAN_SHEET_NAME = "計画シート管理";
 var PLAN_DELETE_LOG = "計画シート削除ログ";
 
+// ===== Googleフォーム回答シート → FAS 自動同期の設定 =====
+// フォーム回答スプレッドシート（別の人が作成・共有済み）
+var FORM_SHEET_ID = "1kLrdd7e8BgVWNztZ73spr6M-xD0KgjupzWCdZh2tcGo";
+var FORM_SHEET_NAME = "";  // 空なら先頭シートを使用
+// フォーム側の列見出し → FAS項目名 の対応（WIn10計は反映しない）
+var FORM_ITEM_MAP = {
+  "Win11": "WIN10からWIN11",
+  "Mac":   "WIN10からMAC",
+  "iPad":  "WIN10からIPAD"
+};
+// フォーム側でプランナーを特定する列見出し
+var FORM_NAME_HEADER = "プランナー名";
+
+// ===== SeatBOX（シートボックス）個人実績 → FAS 自動同期の設定 =====
+// 千葉ブロック帳票共有/シートボックス実績 フォルダ。毎朝「SeatBOX集計(第N期個人)_YYYYMMDD.xlsx」が上がる
+var SEATBOX_FOLDER_ID = "1W8Rq5YxUAgTK4WQND7huBJQra7_U4yxQ";
+// プランナー一覧（emp_id照合用）。GitHub Pages公開分を読む
+var PLANNERS_JSON_URL = "https://smartlife-hokuso.github.io/hokuso-fas/%E5%8C%97%E7%B7%8FFAS%E7%8A%B6%E6%B3%81/planners.json";
+var SEATBOX_PERIODS = [1, 2];
+// Excelの「LearningBOX 計」見出し → FAS項目名の末尾。枠おさえは本人が手入力（同期対象外）
+var SEATBOX_AUTO_LABELS = ["スタンバイ", "受注", "完了"];
+function seatboxItemName(period, label) { return "第" + period + "期シートボックス" + label; }
+
 // apo.ozzio.info アポインター名 → FAS プランナー名 マッピング（23名、石井（俊）は除外）
 var APO_TO_FAS_NAME = {
   "並木": "並木 孝博",
@@ -64,8 +87,12 @@ function doGet(e) {
     json = JSON.stringify(getConflicts());
   } else if (action === "apo_status") {
     json = JSON.stringify(getApoStatus());
+  } else if (action === "sync_form") {
+    json = JSON.stringify(syncFromFormTrigger());
   } else if (action === "notices") {
     json = JSON.stringify(getNotices());
+  } else if (action === "seatbox_status") {
+    json = JSON.stringify(getSeatboxStatus());
   } else {
     json = JSON.stringify(readData(e));
   }
@@ -1177,4 +1204,513 @@ function addWinItems() {
   var msg = added.length + "項目を追加しました: " + (added.join(", ") || "（追加なし・全て既存）");
   Logger.log(msg);
   return msg;
+}
+
+// ===================================================================
+// Googleフォーム回答シート → FAS 差分同期
+// apo同期と同じ「前回値を記録し、増えた分だけ加算」方式（二重計上を防止）。
+// 対象項目は FORM_ITEM_MAP（Win11/Mac/iPad → WIN10からWIN11/MAC/IPAD）。
+// WIn10計は同期しない。プランナーは氏名（スペース除去）で照合。
+// ===================================================================
+
+// フォーム回答シートを開く（アクセス不可なら分かりやすいエラー）
+function openFormSheet() {
+  var fss;
+  try {
+    fss = SpreadsheetApp.openById(FORM_SHEET_ID);
+  } catch (e) {
+    throw new Error("フォーム回答シートを開けません。FASを動かしているGoogleアカウントにこのスプレッドシートが共有されているか確認してください。詳細: " + e);
+  }
+  var sh = FORM_SHEET_NAME ? fss.getSheetByName(FORM_SHEET_NAME) : fss.getSheets()[0];
+  if (!sh) throw new Error("フォーム回答シート内に対象シートが見つかりません: " + (FORM_SHEET_NAME || "(先頭シート)"));
+  return sh;
+}
+
+// アクセス確認＆見出し表示（GASエディタから1回実行して疎通確認する用）
+function checkFormAccess() {
+  var sh = openFormSheet();
+  var lastCol = sh.getLastColumn();
+  var lastRow = sh.getLastRow();
+  var headers = sh.getRange(1, 1, 1, lastCol).getValues()[0];
+  var msg = "✅ フォーム回答シートに接続OK / シート名: " + sh.getName() +
+    " / 行数(見出し含む): " + lastRow +
+    " / 見出し: [" + headers.join(" | ") + "]";
+  Logger.log(msg);
+  return msg;
+}
+
+// フォーム同期状態シートを取得（なければ作成）
+function getOrCreateFormStateSheet(ss) {
+  var sh = ss.getSheetByName("フォーム同期状態");
+  if (!sh) {
+    sh = ss.insertSheet("フォーム同期状態");
+    sh.appendRow(["プランナー名", "項目名", "前回フォーム値", "最終同期日時"]);
+    sh.getRange(1, 1, 1, 4).setFontWeight("bold");
+  }
+  return sh;
+}
+
+// 差分同期の本体
+function syncFromForm() {
+  var formSheet = openFormSheet();
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  if (!ws) return { status: "error", message: SHEET_NAME + " シートが見つかりません" };
+
+  // フォーム見出しから列番号を特定（列の並び替えに強くする）
+  var fLastCol = formSheet.getLastColumn();
+  var fLastRow = formSheet.getLastRow();
+  if (fLastRow < 2) return { status: "ok", processed: 0, message: "フォーム回答がまだありません" };
+  var fHeaders = formSheet.getRange(1, 1, 1, fLastCol).getValues()[0];
+  var headerToCol = {};
+  for (var h = 0; h < fHeaders.length; h++) {
+    var hv = fHeaders[h] ? fHeaders[h].toString().trim() : "";
+    if (hv) headerToCol[hv] = h; // 0始まり
+  }
+  var nameIdx = headerToCol[FORM_NAME_HEADER];
+  if (nameIdx === undefined) {
+    return { status: "error", message: "フォームに『" + FORM_NAME_HEADER + "』列がありません。見出し: " + fHeaders.join(", ") };
+  }
+
+  // FAS: 名前→列、項目→行
+  var names = ws.getRange(3, 1, 1, ws.getLastColumn()).getValues()[0];
+  var nameToCol = {};
+  for (var i = 0; i < names.length; i++) {
+    if (names[i]) nameToCol[names[i].toString().replace(/\s/g, "")] = i + 1;
+  }
+  var items = ws.getRange(1, 3, ws.getLastRow(), 1).getValues();
+  var itemToRow = {};
+  for (var r = 0; r < items.length; r++) {
+    if (items[r][0]) itemToRow[items[r][0].toString().trim()] = r + 1;
+  }
+
+  // フォーム同期状態（前回値）
+  var stateSheet = getOrCreateFormStateSheet(ss);
+  var stateData = stateSheet.getDataRange().getValues();
+  var stateMap = {}; // key = "nameKey|item" → {row, prevVal}
+  for (var sr = 1; sr < stateData.length; sr++) {
+    var snm = stateData[sr][0] ? stateData[sr][0].toString().replace(/\s/g, "") : "";
+    var sit = stateData[sr][1] ? stateData[sr][1].toString().trim() : "";
+    if (!snm || !sit) continue;
+    stateMap[snm + "|" + sit] = { row: sr + 1, prevVal: Number(stateData[sr][2]) || 0 };
+  }
+
+  var formData = formSheet.getRange(2, 1, fLastRow - 1, fLastCol).getValues();
+  var processed = 0, skipped = 0, conflictsDetected = 0, bootstrapped = 0;
+  var skippedNames = [];
+  var nowStr = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+
+  for (var d = 0; d < formData.length; d++) {
+    var frow = formData[d];
+    var rawName = frow[nameIdx] ? frow[nameIdx].toString() : "";
+    var nameKey = rawName.replace(/\s/g, "");
+    if (!nameKey) continue; // 空行スキップ
+
+    var col = nameToCol[nameKey];
+    if (!col) {
+      skipped++;
+      skippedNames.push(rawName + "（FASに該当プランナーなし）");
+      continue;
+    }
+
+    var updatedKeys = [];
+    var oldValues = {};
+    var newValuesForLog = {};
+
+    for (var formHeader in FORM_ITEM_MAP) {
+      var fcol = headerToCol[formHeader];
+      if (fcol === undefined) continue; // その列がフォームに無い
+      var item = FORM_ITEM_MAP[formHeader];
+      var fasRow = itemToRow[item];
+      if (!fasRow) continue; // FASにその項目行が無い
+
+      var newVal = Number(frow[fcol]) || 0;
+      var stateKey = nameKey + "|" + item;
+      var existing = stateMap[stateKey];
+      var currentFasVal = Number(ws.getRange(fasRow, col).getValue()) || 0;
+
+      if (!existing) {
+        // ブートストラップ（初回のみ整合）: FAS値をフォーム現在値に揃え、状態を記録
+        if (newVal !== currentFasVal) {
+          oldValues[item] = currentFasVal;
+          ws.getRange(fasRow, col).setValue(newVal);
+          updatedKeys.push(item);
+          newValuesForLog[item] = newVal;
+        }
+        stateSheet.appendRow([rawName, item, newVal, nowStr]);
+        stateMap[stateKey] = { row: stateSheet.getLastRow(), prevVal: newVal };
+        bootstrapped++;
+        continue;
+      }
+
+      // 差分加算: delta = 今回 - 前回
+      var delta = newVal - existing.prevVal;
+      if (delta !== 0) {
+        var newFasVal = currentFasVal + delta;
+        if (newFasVal < 0) newFasVal = 0;
+        if (newFasVal !== currentFasVal) {
+          oldValues[item] = currentFasVal;
+          ws.getRange(fasRow, col).setValue(newFasVal);
+          updatedKeys.push(item);
+          newValuesForLog[item] = newFasVal;
+          if (detectConflict(ss, rawName, item, "form")) conflictsDetected++;
+        }
+        stateSheet.getRange(existing.row, 3).setValue(newVal);
+        stateSheet.getRange(existing.row, 4).setValue(nowStr);
+        existing.prevVal = newVal;
+      }
+    }
+
+    if (updatedKeys.length > 0) {
+      writeLog(ss, rawName, newValuesForLog, updatedKeys, oldValues, "form");
+      processed++;
+    }
+  }
+
+  ws.getRange(2, 2).setValue("更新日:" + Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy年M月d日 HH:mm") + "（フォーム差分同期）");
+
+  var result = {
+    status: "ok",
+    processed: processed,
+    bootstrapped: bootstrapped,
+    skipped: skipped,
+    skippedNames: skippedNames,
+    conflicts: conflictsDetected
+  };
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+
+// トリガーから呼ばれるラッパー（例外時も自動実行ログに残す）
+function syncFromFormTrigger() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var execLog = ss.getSheetByName("自動実行ログ");
+  if (!execLog) {
+    execLog = ss.insertSheet("自動実行ログ");
+    execLog.appendRow(["実行日時", "対象月", "結果", "詳細"]);
+    execLog.getRange(1, 1, 1, 4).setFontWeight("bold");
+  }
+  var nowStr = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  try {
+    var res = syncFromForm();
+    execLog.appendRow([nowStr, "フォーム同期", res.status === "ok" ? "成功" : "失敗",
+      "反映" + (res.processed || 0) + "名 / 初回" + (res.bootstrapped || 0) + " / スキップ" + (res.skipped || 0) + " / 競合" + (res.conflicts || 0)]);
+    return res;
+  } catch (err) {
+    execLog.appendRow([nowStr, "フォーム同期", "失敗", String(err)]);
+    return { status: "error", message: String(err) };
+  }
+}
+
+// 自動同期トリガー設定: 1時間ごとに syncFromFormTrigger を実行（GASエディタから1回だけ実行）
+function setupAutoFormSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "syncFromFormTrigger") {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  ScriptApp.newTrigger("syncFromFormTrigger").timeBased().everyHours(1).create();
+  return { status: "ok", removed: removed, message: "1時間ごとに syncFromFormTrigger を自動実行するトリガーを設定しました" };
+}
+
+// 自動同期トリガーを削除
+function removeAutoFormSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "syncFromFormTrigger") {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  return { status: "ok", removed: removed, message: removed + " 個のトリガーを削除しました" };
+}
+
+// ===================================================================
+// SeatBOX（シートボックス）個人実績 → FAS 自動同期
+// 「シートボックス実績」フォルダの最新「SeatBOX集計(第N期個人)_YYYYMMDD.xlsx」を読み、
+// 「LearningBOX 計」のスタンバイ・受注・完了（各月の合計）をプランナーごとにFASへ上書きする。
+// プランナーは社員番号（E列）で照合。番号違いの同一人物は同じ店舗の同姓名でも拾う。
+// 枠おさえは本人が個人ページで入力するので触らない。
+// 準備（GASエディタで1回だけ）:
+//   1. 左の「サービス」+ → Drive API を追加（xlsx→スプレッドシート変換に使う）
+//   2. addSeatboxItems を実行（FASシートのC列に8項目を追加）
+//   3. syncSeatboxFromDrive を実行（認可ダイアログを許可・初回反映）
+//   4. setupAutoSeatboxSync を実行（以降1時間ごとに新しいファイルを確認）
+// ===================================================================
+
+// FASシートのC列にSeatBOX項目（第1期・第2期 × 枠おさえ/スタンバイ/受注/完了）を追加（冪等）
+function addSeatboxItems() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  var lastRow = ws.getLastRow();
+  var numDataCols = ws.getLastColumn() - 3;
+  var existing = ws.getRange(1, 3, lastRow, 1).getValues();
+  var existingSet = {};
+  for (var i = 0; i < existing.length; i++) {
+    var v = existing[i][0] ? existing[i][0].toString().trim() : "";
+    if (v) existingSet[v] = true;
+  }
+  var added = [];
+  var row = lastRow + 1;
+  for (var p = 0; p < SEATBOX_PERIODS.length; p++) {
+    var labels = ["枠おさえ"].concat(SEATBOX_AUTO_LABELS);
+    for (var l = 0; l < labels.length; l++) {
+      var item = seatboxItemName(SEATBOX_PERIODS[p], labels[l]);
+      if (existingSet[item]) continue;
+      ws.getRange(row, 3).setValue(item);
+      if (numDataCols > 0) {
+        var zeros = [];
+        for (var z = 0; z < numDataCols; z++) zeros.push(0);
+        ws.getRange(row, 4, 1, numDataCols).setValues([zeros]);
+      }
+      added.push(item);
+      existingSet[item] = true;
+      row++;
+    }
+  }
+  var msg = added.length + "項目を追加しました: " + (added.join(", ") || "（追加なし・全て既存）");
+  Logger.log(msg);
+  return msg;
+}
+
+// フォルダから期ごとに最新の個人ファイルを探す → { 1: {file, date}, 2: {...} }
+function findLatestSeatboxFiles() {
+  var folder = DriveApp.getFolderById(SEATBOX_FOLDER_ID);
+  var it = folder.getFiles();
+  var latest = {};
+  while (it.hasNext()) {
+    var f = it.next();
+    var m = f.getName().match(/SeatBOX集計[(（]第(\d+)期個人[)）]_(\d{8})\.xlsx$/);
+    if (!m) continue;
+    var period = Number(m[1]);
+    var cur = latest[period];
+    if (!cur || m[2] > cur.date || (m[2] === cur.date && f.getLastUpdated() > cur.file.getLastUpdated())) {
+      latest[period] = { file: f, date: m[2] };
+    }
+  }
+  return latest;
+}
+
+// xlsxを一時的にスプレッドシートへ変換して全セルを読む（一時ファイルはすぐゴミ箱へ）
+function readXlsxValues(file) {
+  var tmp = Drive.Files.create(
+    { name: "tmp_fas_seatbox_" + file.getName(), mimeType: MimeType.GOOGLE_SHEETS },
+    file.getBlob()
+  );
+  try {
+    return SpreadsheetApp.openById(tmp.id).getSheets()[0].getDataRange().getValues();
+  } finally {
+    DriveApp.getFileById(tmp.id).setTrashed(true);
+  }
+}
+
+function _sbNum(x) {
+  if (x === null || x === "") return 0;
+  var v = Number(String(x).replace(/,/g, ""));
+  return isNaN(v) ? 0 : v;
+}
+
+// 個人帳票を解析 → { range: "2026/8/1～2026/10/29", rows: [{emp, store, name, スタンバイ, 受注, 完了}] }
+function parseSeatboxKojin(values) {
+  var gr = -1, gc = -1;
+  for (var i = 0; i < Math.min(10, values.length) && gr < 0; i++) {
+    for (var j = 0; j < values[i].length; j++) {
+      if (String(values[i][j]).replace(/[\s　]/g, "") === "LearningBOX計") { gr = i; gc = j; break; }
+    }
+  }
+  if (gr < 0) throw new Error("「LearningBOX 計」の見出しが見つかりません（帳票の形式が変わった可能性）");
+
+  // 「LearningBOX 計」の範囲 = 次の見出しまで。その下の行の スタンバイ/受注/完了 × 各月 の列を拾う
+  var end = values[gr].length;
+  for (var c = gc + 1; c < values[gr].length; c++) {
+    if (String(values[gr][c]).trim()) { end = c; break; }
+  }
+  var cols = [], label = "";
+  for (var c2 = gc; c2 < end; c2++) {
+    var lb = String(values[gr + 1][c2]).trim();
+    if (lb) label = lb;
+    var month = values[gr + 2][c2];
+    var isMonth = (month instanceof Date) || /\d{4}\D+\d{1,2}/.test(String(month));
+    if (SEATBOX_AUTO_LABELS.indexOf(label) >= 0 && isMonth) cols.push({ col: c2, label: label });
+  }
+  if (!cols.length) throw new Error("スタンバイ・受注・完了の列が見つかりません");
+
+  var range = "";
+  for (var r0 = 0; r0 < gr; r0++) {
+    var mm = values[r0].join(" ").match(/集計\s*[:：]\s*(\S+[～〜~]\S+)/);
+    if (mm) { range = mm[1]; break; }
+  }
+
+  // 個人行 = E列に社員番号、F列に氏名（グループ行・店舗行はE列が空）
+  var rows = [];
+  for (var r = gr + 3; r < values.length; r++) {
+    var emp = String(values[r][4]).trim();
+    var name = String(values[r][5]).trim();
+    if (!/^\d{5,8}$/.test(emp) || !name) continue;
+    var rec = { emp: Number(emp), store: Number(values[r][1]) || 0, name: name.replace(/[\s　]/g, "") };
+    for (var k = 0; k < SEATBOX_AUTO_LABELS.length; k++) rec[SEATBOX_AUTO_LABELS[k]] = 0;
+    for (var q = 0; q < cols.length; q++) rec[cols[q].label] += _sbNum(values[r][cols[q].col]);
+    rows.push(rec);
+  }
+  return { range: range, rows: rows };
+}
+
+// プランナーごとの合計 → { "片桐啓介": {スタンバイ, 受注, 完了, found} }
+function aggregateSeatboxForPlanners(parsed, planners) {
+  var result = {};
+  for (var i = 0; i < planners.length; i++) {
+    var p = planners[i];
+    var key = String(p.name).replace(/[\s　]/g, "");
+    var v = { found: false };
+    for (var k = 0; k < SEATBOX_AUTO_LABELS.length; k++) v[SEATBOX_AUTO_LABELS[k]] = 0;
+    for (var r = 0; r < parsed.rows.length; r++) {
+      var row = parsed.rows[r];
+      var hit = (p.emp_id && row.emp === Number(p.emp_id)) ||
+                (row.name === key && row.store === Number(p.cd));
+      if (!hit) continue;
+      v.found = true;
+      for (var k2 = 0; k2 < SEATBOX_AUTO_LABELS.length; k2++) v[SEATBOX_AUTO_LABELS[k2]] += row[SEATBOX_AUTO_LABELS[k2]];
+    }
+    result[key] = v;
+  }
+  return result;
+}
+
+// 本体: 新しいファイルがあればFASへ反映。force=true なら同じファイルでも再反映
+function syncSeatboxFromDrive(force) {
+  force = force === true;
+  var props = PropertiesService.getScriptProperties();
+  var meta = JSON.parse(props.getProperty("SEATBOX_META") || "{}");
+  var latest = findLatestSeatboxFiles();
+
+  var todo = [];
+  for (var i = 0; i < SEATBOX_PERIODS.length; i++) {
+    var period = SEATBOX_PERIODS[i];
+    var lf = latest[period];
+    if (!lf) continue;
+    var stamp = lf.file.getId() + "@" + lf.file.getLastUpdated().getTime();
+    if (!force && meta[period] && meta[period].stamp === stamp) continue;
+    todo.push({ period: period, file: lf.file, date: lf.date, stamp: stamp });
+  }
+  if (!todo.length) return { status: "ok", message: "新しいファイルはありません", updated: 0 };
+
+  var planners = JSON.parse(UrlFetchApp.fetch(PLANNERS_JSON_URL + "?_=" + Date.now()).getContentText());
+
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var ws = ss.getSheetByName(SHEET_NAME);
+  var all = ws.getDataRange().getValues();
+  var nameRow = all[2];
+  var itemRows = {};
+  for (var r = 3; r < all.length; r++) {
+    var item = all[r][2] ? all[r][2].toString().trim() : "";
+    if (item) itemRows[item] = r;
+  }
+  var nameCols = {};
+  for (var c = 3; c < nameRow.length; c++) {
+    var nm = nameRow[c] ? nameRow[c].toString().replace(/[\s　]/g, "") : "";
+    if (nm) nameCols[nm] = c;
+  }
+
+  var now = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  var logRows = [];
+  var summary = [];
+  for (var t = 0; t < todo.length; t++) {
+    var job = todo[t];
+    var parsed = parseSeatboxKojin(readXlsxValues(job.file));
+    var agg = aggregateSeatboxForPlanners(parsed, planners);
+    var changed = 0, matched = 0;
+    for (var k = 0; k < SEATBOX_AUTO_LABELS.length; k++) {
+      var label = SEATBOX_AUTO_LABELS[k];
+      var itemName = seatboxItemName(job.period, label);
+      var rowIdx = itemRows[itemName];
+      if (rowIdx === undefined) throw new Error("FASシートに「" + itemName + "」がありません。先に addSeatboxItems を実行してください");
+      var rowVals = all[rowIdx].slice();
+      var rowChanged = false;
+      for (var key in agg) {
+        var col = nameCols[key];
+        if (col === undefined) continue;
+        var newVal = agg[key][label];
+        var oldVal = Number(rowVals[col]) || 0;
+        if (newVal !== oldVal) {
+          rowVals[col] = newVal;
+          rowChanged = true;
+          changed++;
+          logRows.push([now, nameRow[col].toString().trim(), itemName, oldVal, newVal, "seatbox"]);
+        }
+      }
+      if (rowChanged) {
+        ws.getRange(rowIdx + 1, 4, 1, rowVals.length - 3).setValues([rowVals.slice(3)]);
+        all[rowIdx] = rowVals;
+      }
+    }
+    for (var key2 in agg) if (agg[key2].found && nameCols[key2] !== undefined) matched++;
+    meta[job.period] = { stamp: job.stamp, file: job.file.getName(), date: job.date, range: parsed.range, syncedAt: now, matched: matched };
+    summary.push("第" + job.period + "期 " + job.file.getName() + " / 該当" + matched + "名 / 変更" + changed + "件");
+  }
+
+  if (logRows.length) {
+    writeLog(ss, "", {}, [], {}); // 変更ログシートと見出しを用意
+    var logSheet = ss.getSheetByName("変更ログ");
+    logSheet.getRange(logSheet.getLastRow() + 1, 1, logRows.length, 6).setValues(logRows);
+  }
+  props.setProperty("SEATBOX_META", JSON.stringify(meta));
+  return { status: "ok", message: summary.join(" / "), updated: logRows.length };
+}
+
+// 強制再反映（同じファイルでももう一度読み直す）
+function forceSyncSeatbox() {
+  return syncSeatboxFromDrive(true);
+}
+
+// トリガーから呼ばれる。結果を「自動実行ログ」に残す（新ファイルが無い回は記録しない）
+function syncSeatboxTrigger() {
+  var ss = SpreadsheetApp.openById(SHEET_ID);
+  var nowStr = Utilities.formatDate(new Date(), "Asia/Tokyo", "yyyy/MM/dd HH:mm:ss");
+  var res;
+  try {
+    res = syncSeatboxFromDrive(false);
+    if (res.message === "新しいファイルはありません") return res;
+  } catch (err) {
+    res = { status: "error", message: String(err) };
+  }
+  var execLog = ss.getSheetByName("自動実行ログ");
+  if (!execLog) {
+    execLog = ss.insertSheet("自動実行ログ");
+    execLog.appendRow(["実行日時", "対象月", "結果", "詳細"]);
+    execLog.getRange(1, 1, 1, 4).setFontWeight("bold");
+  }
+  execLog.appendRow([nowStr, "SeatBOX同期", res.status === "ok" ? "成功" : "失敗", res.message]);
+  return res;
+}
+
+// 個人ページ表示用: どのファイル（何日時点）の数字かを返す
+function getSeatboxStatus() {
+  var meta = JSON.parse(PropertiesService.getScriptProperties().getProperty("SEATBOX_META") || "{}");
+  var out = {};
+  for (var p in meta) out[p] = { file: meta[p].file, date: meta[p].date, range: meta[p].range, syncedAt: meta[p].syncedAt };
+  return out;
+}
+
+// 自動同期トリガー設定: 1時間ごとに新しいファイルを確認（GASエディタから1回だけ実行）
+function setupAutoSeatboxSync() {
+  removeAutoSeatboxSync();
+  ScriptApp.newTrigger("syncSeatboxTrigger").timeBased().everyHours(1).create();
+  return { status: "ok", message: "1時間ごとに syncSeatboxTrigger を自動実行するトリガーを設定しました" };
+}
+
+// 自動同期トリガーを削除
+function removeAutoSeatboxSync() {
+  var triggers = ScriptApp.getProjectTriggers();
+  var removed = 0;
+  for (var i = 0; i < triggers.length; i++) {
+    if (triggers[i].getHandlerFunction() === "syncSeatboxTrigger") {
+      ScriptApp.deleteTrigger(triggers[i]);
+      removed++;
+    }
+  }
+  return { status: "ok", removed: removed, message: removed + " 個のトリガーを削除しました" };
 }

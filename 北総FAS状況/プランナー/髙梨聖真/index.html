@@ -135,6 +135,10 @@ body {
 .data-item .label .note {
     display: block; font-size: 10px; color: #9aa2b8; font-weight: 400; margin-top: 2px;
 }
+/* 自動反映の項目（編集モードでも入力欄を出さない） */
+.edit-mode .data-item.auto .value { display: inline; }
+.data-item.auto .label .note { color: #8bb3a0; }
+.sb-status { font-size: 11px; color: #9aa2b8; margin: -4px 0 10px; }
 
 .action-bar {
     display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
@@ -313,6 +317,7 @@ body {
             <button class="tab-btn active" data-tab="fas">FAS状況</button>
             <button class="tab-btn" data-tab="win">WIN状況</button>
             <button class="tab-btn" data-tab="asset">アセット実現（当月）</button>
+            <button class="tab-btn" data-tab="seatbox">シートボックス</button>
             <button class="tab-btn" data-tab="event">イベント</button>
             <button class="tab-btn" data-tab="appoint">アポイント（当月）</button>
             <button class="tab-btn" data-tab="recruit">人材獲得</button>
@@ -328,6 +333,12 @@ body {
         </div>
         <div class="section" id="sec-asset">
             <div class="data-card"><h3>アセット実現（当月）</h3><div class="data-grid" id="grid-asset"></div></div>
+        </div>
+        <div class="section" id="sec-seatbox">
+            <div class="data-card"><h3>シートボックス</h3>
+                <div class="sb-status" id="sbStatus">スタンバイ・受注・完了は毎朝の集計から自動反映／枠おさえは「編集する」から入力してください</div>
+                <div class="data-grid" id="grid-seatbox"></div>
+            </div>
         </div>
         <div class="section" id="sec-event">
             <div class="data-card"><h3>イベント</h3><div class="data-grid" id="grid-event"></div></div>
@@ -394,6 +405,18 @@ var categories = {
         { key: "WIN10からIPAD", indent: true }
     ],
     asset: ["VC","内AO生","内専門生","内ビジネス","内DXエントリー","内DXレギュラー","CEX","従業員オプション","WEB","GoogleWokSpace","GenSpark","光/SIM/モバイルルータ","我が社"],
+    seatbox: [
+        { header: "第1期" },
+        { key: "第1期シートボックス枠おさえ", label: "枠おさえ", note: "自分で入力" },
+        { key: "第1期シートボックススタンバイ", label: "スタンバイ", note: "自動反映", auto: true },
+        { key: "第1期シートボックス受注", label: "受注", note: "自動反映", auto: true },
+        { key: "第1期シートボックス完了", label: "完了", note: "自動反映", auto: true },
+        { header: "第2期" },
+        { key: "第2期シートボックス枠おさえ", label: "枠おさえ", note: "自分で入力" },
+        { key: "第2期シートボックススタンバイ", label: "スタンバイ", note: "自動反映", auto: true },
+        { key: "第2期シートボックス受注", label: "受注", note: "自動反映", auto: true },
+        { key: "第2期シートボックス完了", label: "完了", note: "自動反映", auto: true }
+    ],
     event: ["イベント来館","イベント参加確定","イベント参加予定"],
     appoint: ["アポイントコール数","アポイントラウンド数","アポイント（確定）軒数","アポイント（確定）人数"],
     recruit: ["リファラル","FAS-Z","FAS-Z（学生）"]
@@ -452,6 +475,7 @@ async function init() {
     renderCategory("grid-fas", categories.fas);
     renderCategory("grid-win", categories.win);
     renderCategory("grid-asset", categories.asset);
+    renderCategory("grid-seatbox", categories.seatbox);
     renderCategory("grid-event", categories.event);
     renderCategory("grid-appoint", categories.appoint);
     renderCategory("grid-recruit", categories.recruit);
@@ -465,6 +489,7 @@ async function init() {
             document.getElementById("sec-" + btn.dataset.tab).classList.add("active");
             if (btn.dataset.tab === "history") { loadHistory(); showAssetTotal(); }
             if (btn.dataset.tab === "plan") { loadPlanList(); }
+            if (btn.dataset.tab === "seatbox") { loadSeatboxStatus(); }
         });
     });
 }
@@ -619,10 +644,11 @@ function renderCategory(gridId, items) {
         }
         var labelHtml = (it.label || key) + (it.note ? '<span class="note">' + it.note + '</span>' : "");
         var item = document.createElement("div");
-        item.className = "data-item" + (it.indent ? " indent" : "");
+        item.className = "data-item" + (it.indent ? " indent" : "") + (it.auto ? " auto" : "");
+        // auto の項目は自動反映なので入力欄を出さない（保存対象にもならない）
         item.innerHTML = '<span class="label">' + labelHtml + '</span>' +
             '<span class="value ' + (val === 0 ? "zero" : "") + '">' + val + '</span>' +
-            '<input class="edit-input" type="number" value="' + val + '" data-key="' + key + '">';
+            (it.auto ? "" : '<input class="edit-input" type="number" value="' + val + '" data-key="' + key + '">');
         grid.appendChild(item);
     }
 }
@@ -646,6 +672,7 @@ function cancelEdit() {
     renderCategory("grid-fas", categories.fas);
     renderCategory("grid-win", categories.win);
     renderCategory("grid-asset", categories.asset);
+    renderCategory("grid-seatbox", categories.seatbox);
     renderCategory("grid-event", categories.event);
     renderCategory("grid-appoint", categories.appoint);
     renderCategory("grid-recruit", categories.recruit);
@@ -691,6 +718,7 @@ async function saveData() {
             renderCategory("grid-fas", categories.fas);
             renderCategory("grid-win", categories.win);
             renderCategory("grid-asset", categories.asset);
+            renderCategory("grid-seatbox", categories.seatbox);
             renderCategory("grid-event", categories.event);
             renderCategory("grid-appoint", categories.appoint);
             renderCategory("grid-recruit", categories.recruit);
@@ -706,6 +734,24 @@ async function saveData() {
         saveBtn.disabled = false;
         saveBtn.textContent = "保存する";
     }
+}
+
+// シートボックスタブ: 何日時点の集計かを表示
+var seatboxStatusLoaded = false;
+function loadSeatboxStatus() {
+    if (seatboxStatusLoaded) return;
+    loadGAS(GAS_URL + "?action=seatbox_status&_=" + Date.now()).then(function(st) {
+        var parts = [];
+        ["1", "2"].forEach(function(p) {
+            if (!st[p]) return;
+            var d = st[p].date;
+            parts.push("第" + p + "期 " + Number(d.slice(4, 6)) + "/" + Number(d.slice(6, 8)) + "時点" + (st[p].range ? "（集計 " + st[p].range + "）" : ""));
+        });
+        if (parts.length) {
+            document.getElementById("sbStatus").textContent = "スタンバイ・受注・完了は自動反映：" + parts.join("／") + "　枠おさえは「編集する」から入力してください";
+        }
+        seatboxStatusLoaded = true;
+    }).catch(function() {});
 }
 
 // 履歴タブクリック時にログ読み込み
